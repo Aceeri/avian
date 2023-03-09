@@ -6,28 +6,21 @@ use bevy::prelude::*;
 pub struct RigidBodyBundle {
     pub rigid_body: RigidBody,
 
-    pub pos: Pos,
-    pub prev_pos: PrevPos,
+    #[bundle]
+    pub transform: TransformBundle,
 
-    pub rot: Rot,
-    pub prev_rot: PrevRot,
+    pub previous_transform: PrevTransform,
 
-    pub lin_vel: LinVel,
-    pub pre_solve_lin_vel: PreSolveLinVel,
-
-    pub ang_vel: AngVel,
-    pub pre_solve_ang_vel: PreSolveAngVel,
+    pub velocity: Velocity,
+    pub presolve_velocity: PreSolveVelocity,
 
     pub external_force: ExternalForce,
     pub external_torque: ExternalTorque,
-
     pub restitution: Restitution,
     pub friction: Friction,
 
     pub mass: Mass,
-    pub inv_mass: InvMass,
     pub inertia: Inertia,
-    pub inv_inertia: InvInertia,
     pub local_center_of_mass: LocalCom,
 }
 
@@ -53,42 +46,18 @@ impl RigidBodyBundle {
         }
     }
 
-    pub fn with_pos(self, pos: Vector) -> Self {
-        Self {
-            pos: Pos(pos),
-            ..self
-        }
-    }
-
-    #[cfg(feature = "2d")]
-    pub fn with_rot(self, rot: Rot) -> Self {
-        Self { rot, ..self }
-    }
-
-    #[cfg(feature = "3d")]
-    pub fn with_rot(self, quat: Quat) -> Self {
-        Self {
-            rot: Rot(quat),
-            ..self
-        }
-    }
-
     /// Computes the mass properties that a [`Collider`] would have with a given density, and adds those to the body.
     pub fn with_mass_props_from_shape(self, shape: &Shape, density: f32) -> Self {
         let ColliderMassProperties {
             mass,
-            inv_mass,
             inertia,
-            inv_inertia,
             local_center_of_mass,
             ..
         } = ColliderMassProperties::from_shape_and_density(shape, density);
 
         Self {
             mass,
-            inv_mass,
             inertia,
-            inv_inertia,
             local_center_of_mass,
             ..self
         }

@@ -17,8 +17,8 @@ pub trait PositionConstraint: Constraint {
     fn get_delta_pos_lagrange(
         body1: &RigidBodyQueryItem,
         body2: &RigidBodyQueryItem,
-        inv_inertia1: InvInertia,
-        inv_inertia2: InvInertia,
+        inertia1: Inertia,
+        inertia2: Inertia,
         lagrange: f32,
         dir: Vector,
         magnitude: f32,
@@ -35,14 +35,14 @@ pub trait PositionConstraint: Constraint {
         // Compute generalized inverse masses (equations 2-3)
         let w_a = Self::get_generalized_inverse_mass(
             body1.rb,
-            body1.inv_mass.0,
-            inv_inertia1.0,
+            body1.mass,
+            inertia1,
             r_a,
             dir,
         );
         let w_b = Self::get_generalized_inverse_mass(
             body2.rb,
-            body2.inv_mass.0,
+            body2.inv_mass,
             inv_inertia2.0,
             r_b,
             dir,
@@ -90,13 +90,13 @@ pub trait PositionConstraint: Constraint {
     #[cfg(feature = "2d")]
     fn get_generalized_inverse_mass(
         rb: &RigidBody,
-        inv_mass: f32,
-        inv_inertia: f32,
+        mass: Mass,
+        inertia: Inertia,
         r: Vector,
         n: Vector,
     ) -> f32 {
         if rb.is_dynamic() {
-            inv_mass + inv_inertia * r.perp_dot(n).powi(2)
+            mass.inverse() + inertia.inverse() * r.perp_dot(n).powi(2)
         } else {
             // Static and kinematic bodies are a special case, where 0.0 can be thought of as infinite mass.
             0.0
@@ -114,7 +114,8 @@ pub trait PositionConstraint: Constraint {
         if rb.is_dynamic() {
             let r_cross_n = r.cross(n); // Compute the cross product only once
 
-            // The line below is equivalent to Eq (2) because the component-wise multiplication of a transposed vector and another vector is equal to the dot product of the two vectors.
+            // The line below is equivalent to Eq (2) because the component-wise multiplication 
+            // of a transposed vector and another vector is equal to the dot product of the two vectors.
             // a^T * b = a • b
             inv_mass + r_cross_n.dot(inv_inertia * r_cross_n)
         } else {
@@ -141,8 +142,8 @@ pub trait AngularConstraint: Constraint {
     fn get_delta_ang_lagrange(
         rb1: &RigidBody,
         rb2: &RigidBody,
-        inv_inertia1: InvInertia,
-        inv_inertia2: InvInertia,
+        inertia1: Inertia,
+        inertia2: Inertia,
         lagrange: f32,
         axis: Vec3,
         angle: f32,
@@ -155,8 +156,8 @@ pub trait AngularConstraint: Constraint {
         }
 
         // Compute generalized inverse masses (equations 2-3)
-        let w_a = Self::get_generalized_inverse_mass(rb1, inv_inertia1.0, axis);
-        let w_b = Self::get_generalized_inverse_mass(rb2, inv_inertia2.0, axis);
+        let w_a = Self::get_generalized_inverse_mass(rb1, inertia1.inverse(), axis);
+        let w_b = Self::get_generalized_inverse_mass(rb2, inertia2.inverse(), axis);
 
         // Compute Lagrange multiplier updates (equations 4-5)
         let tilde_compliance = compliance / sub_dt.powi(2);
@@ -202,8 +203,8 @@ pub trait AngularConstraint: Constraint {
     fn apply_ang_constraint(
         body1: &mut RigidBodyQueryItem,
         body2: &mut RigidBodyQueryItem,
-        inv_inertia1: InvInertia,
-        inv_inertia2: InvInertia,
+        inertia1: Inertia,
+        inertia2: Inertia,
         delta_lagrange: f32,
         axis: Vec3,
     ) -> Vec3 {
@@ -213,20 +214,20 @@ pub trait AngularConstraint: Constraint {
         let rot_b = *body2.rot;
 
         if body1.rb.is_dynamic() {
-            *body1.rot += Self::get_delta_rot(rot_a, inv_inertia1.0, p);
+            *body1.rot += Self::get_delta_rot(rot_a, inertia1, p);
         }
 
         if body2.rb.is_dynamic() {
-            *body2.rot -= Self::get_delta_rot(rot_b, inv_inertia2.0, p);
+            *body2.rot -= Self::get_delta_rot(rot_b, inertia2, p);
         }
 
         p
     }
 
     #[cfg(feature = "2d")]
-    fn get_generalized_inverse_mass(rb: &RigidBody, inv_inertia: f32, axis: Vec3) -> f32 {
+    fn get_generalized_inverse_mass(rb: &RigidBody, inertia: Inertia, axis: Vec3) -> f32 {
         if rb.is_dynamic() {
-            axis.dot(inv_inertia * axis)
+            axis.dot(inertia.inverse() * axis)
         } else {
             // Static and kinematic bodies are a special case, where 0.0 can be thought of as infinite mass.
             0.0
@@ -234,9 +235,9 @@ pub trait AngularConstraint: Constraint {
     }
 
     #[cfg(feature = "3d")]
-    fn get_generalized_inverse_mass(rb: &RigidBody, inv_inertia: Mat3, axis: Vec3) -> f32 {
+    fn get_generalized_inverse_mass(rb: &RigidBody, inertia: Inertia, axis: Vec3) -> f32 {
         if rb.is_dynamic() {
-            axis.dot(inv_inertia * axis)
+            axis.dot(inertia.inverse() * axis)
         } else {
             // Static and kinematic bodies are a special case, where 0.0 can be thought of as infinite mass.
             0.0
@@ -244,14 +245,14 @@ pub trait AngularConstraint: Constraint {
     }
 
     #[cfg(feature = "2d")]
-    fn get_delta_rot(_rot: Rot, inv_inertia: f32, p: f32) -> Rot {
+    fn get_delta_rot(_rot: Rot, inertia: Inertia, p: f32) -> Rot {
         // Equation 8/9 but in 2D
-        Rot::from_radians(inv_inertia * p)
+        Rot::from_radians(inertia.inverse() * p)
     }
 
     #[cfg(feature = "3d")]
-    fn get_delta_rot(rot: Rot, inv_inertia: Mat3, p: Vec3) -> Rot {
+    fn get_delta_rot(rot: Rot, inertia: Inertia, p: Vec3) -> Rot {
         // Equation 8/9
-        Rot(Quat::from_vec4(0.5 * (inv_inertia * p).extend(0.0)) * rot.0)
+        Rot(Quat::from_vec4(0.5 * (inertia.inverse() * p).extend(0.0)) * rot.0)
     }
 }

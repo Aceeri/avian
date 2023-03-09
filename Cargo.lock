@@ -884,7 +884,6 @@ name = "bevy_xpbd_2d"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "cfg-if 1.0.0",
  "console_error_panic_hook",
  "examples_common_2d",
  "nalgebra",
@@ -897,7 +896,6 @@ name = "bevy_xpbd_3d"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "cfg-if 1.0.0",
  "console_error_panic_hook",
  "examples_common_3d",
  "nalgebra",

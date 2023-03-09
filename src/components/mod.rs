@@ -14,18 +14,12 @@ use crate::utils::get_rotated_inertia_tensor;
 #[world_query(mutable)]
 pub struct RigidBodyQuery<'w> {
     pub rb: &'w RigidBody,
-    pub pos: &'w mut Pos,
-    pub rot: &'w mut Rot,
-    pub prev_pos: &'w PrevPos,
-    pub prev_rot: &'w PrevRot,
-    pub lin_vel: &'w mut LinVel,
-    pub pre_solve_lin_vel: &'w mut PreSolveLinVel,
-    pub ang_vel: &'w mut AngVel,
-    pub pre_solve_ang_vel: &'w mut PreSolveAngVel,
+    pub transform: &'w mut GlobalTransform,
+    pub prev_transform: &'w mut PrevTransform,
+    pub velocity: &'w mut Velocity,
+    pub presolve_velocity: &'w mut PreSolveVelocity,
     pub mass: &'w Mass,
-    pub inv_mass: &'w InvMass,
     pub inertia: &'w Inertia,
-    pub inv_inertia: &'w InvInertia,
     pub local_com: &'w LocalCom,
     pub friction: &'w Friction,
     pub restitution: &'w Restitution,
@@ -35,9 +29,7 @@ pub struct RigidBodyQuery<'w> {
 #[world_query(mutable)]
 pub(crate) struct MassPropsQueryMut<'w> {
     pub mass: &'w mut Mass,
-    pub inv_mass: &'w mut InvMass,
     pub inertia: &'w mut Inertia,
-    pub inv_inertia: &'w mut InvInertia,
     pub local_com: &'w mut LocalCom,
 }
 
@@ -50,13 +42,12 @@ pub(crate) struct ColliderQuery<'w> {
     pub prev_mass_props: &'w mut PrevColliderMassProperties,
 }
 
+/*
 impl<'_w, 'w> AddAssign<ColliderMassProperties> for MassPropsQueryMutItem<'_w, 'w> {
     fn add_assign(&mut self, rhs: ColliderMassProperties) {
-        self.mass.0 += rhs.mass.0;
-        self.inv_mass.0 = 1.0 / rhs.mass.0;
-        self.inertia.0 += rhs.inertia.0;
-        self.inv_inertia.0 = self.inertia.inverse().0;
-        self.local_com.0 += rhs.local_center_of_mass.0;
+        self.mass += rhs.mass.0;
+        self.inertia += rhs.inertia.0;
+        self.local_com += rhs.local_center_of_mass.0;
     }
 }
 
@@ -69,7 +60,7 @@ impl<'_w, 'w> SubAssign<ColliderMassProperties> for MassPropsQueryMutItem<'_w, '
         self.local_com.0 -= rhs.local_center_of_mass.0;
     }
 }
-
+ */
 #[derive(Reflect, Clone, Copy, Component, PartialEq, Eq)]
 #[reflect(Component)]
 pub enum RigidBody {
@@ -111,41 +102,25 @@ impl Default for RigidBody {
     }
 }
 
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-pub struct Pos(pub Vector);
 
 #[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
 #[reflect(Component)]
-pub struct PrevPos(pub Vector);
+pub struct PrevTransform(pub GlobalTransform);
+
+#[derive(Reflect, Clone, Copy, Component, Debug, Default, PartialEq)]
+#[reflect(Component)]
+pub struct Velocity {
+    pub linear: Vector,
+
+    #[cfg(feature = "2d")]
+    pub angular: f32,
+    #[cfg(feature = "3d")]
+    pub angular: Vector,
+}
 
 #[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
 #[reflect(Component)]
-pub struct LinVel(pub Vector);
-
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-pub struct PreSolveLinVel(pub Vector);
-
-#[cfg(feature = "2d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-pub struct AngVel(pub f32);
-
-#[cfg(feature = "3d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-pub struct AngVel(pub Vec3);
-
-#[cfg(feature = "2d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-pub struct PreSolveAngVel(pub f32);
-
-#[cfg(feature = "3d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-pub struct PreSolveAngVel(pub Vec3);
+pub struct PreSolveVelocity(pub Velocity);
 
 #[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
 #[reflect(Component)]
@@ -204,109 +179,113 @@ impl Default for Friction {
     }
 }
 
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
+#[derive(Reflect, Clone, Copy, Component, Debug, Default, PartialEq)]
 #[reflect(Component)]
-pub struct Mass(pub f32);
-
-impl Mass {
-    pub const ZERO: Self = Self(0.0);
+pub struct Mass {
+    mass: f32,
+    inverse: f32,
 }
 
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-pub struct InvMass(pub f32);
+impl Mass {
+    pub const ZERO: Self = Self::new(0.0);
 
-impl InvMass {
-    pub const ZERO: Self = Self(0.0);
+    pub fn calc_inverse(mass: f32) -> f32 {
+        if mass != 0.0 {
+            1.0 / mass
+        } else {
+            0.0
+        }
+    }
+
+    pub fn new(mass: f32) -> Self {
+        Self {
+            mass,
+            inverse: Mass::calc_inverse(mass),
+        }
+    }
+
+    pub fn inverse(&self) -> f32 {
+        self.inverse
+    }
+
 }
 
 #[cfg(feature = "2d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
+#[derive(Reflect, Clone, Copy, Component, Debug, Default, PartialEq)]
 #[reflect(Component)]
 /// The moment of inertia of the body. In 2D this is scalar because bodies can only rotate around one axis.
-pub struct Inertia(pub f32);
+pub struct Inertia {
+    inertia: f32,
+    inverse: f32,
+}
 
 #[cfg(feature = "3d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
+#[derive(Reflect, Clone, Copy, Component, Debug, Default, PartialEq)]
 #[reflect(Component)]
 /// The local moment of inertia of the body as a 3x3 tensor matrix. This is computed in local-space, so the object's orientation is not taken into account.
 ///
 /// To get the world-space version that takes the body's rotation into account, use the associated `rotated` method. Note that this operation is quite expensive, so use it sparingly.
-pub struct Inertia(pub Mat3);
+pub struct Inertia {
+    inertia: Mat3,
+    inverse: Mat3,
+}
 
 impl Inertia {
     #[cfg(feature = "2d")]
-    pub const ZERO: Self = Self(0.0);
+    pub const ZERO: Self = Self::new(0.0);
     #[cfg(feature = "3d")]
-    pub const ZERO: Self = Self(Mat3::ZERO);
+    pub const ZERO: Self = Self::new(Mat3::ZERO);
 
     #[cfg(feature = "2d")]
-    /// In 2D this does nothing, but it is there for convenience so that you don't have to handle 2D and 3D separately.
-    pub fn rotated(&self, _rot: &Rot) -> Self {
-        *self
+    pub fn calc_inverse(inertia: f32) -> f32 {
+        if inertia != 0.0 {
+            1.0 / inertia
+        } else {
+            0.0
+        }
     }
 
     #[cfg(feature = "3d")]
-    pub fn rotated(&self, rot: &Rot) -> Self {
-        Self(get_rotated_inertia_tensor(self.0, rot.0))
-    }
-
-    #[cfg(feature = "2d")]
-    pub fn inverse(&self) -> InvInertia {
-        InvInertia(1.0 / self.0)
-    }
-
-    #[cfg(feature = "3d")]
-    pub fn inverse(&self) -> InvInertia {
-        InvInertia(self.0.inverse())
-    }
-}
-
-#[cfg(feature = "2d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-/// The inverse moment of inertia of the body. In 2D this is scalar because bodies can only rotate around one axis.
-pub struct InvInertia(pub f32);
-
-#[cfg(feature = "3d")]
-#[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut, PartialEq)]
-#[reflect(Component)]
-/// The local inverse moment of inertia of the body as a 3x3 tensor matrix. This is computed in local-space, so the object's orientation is not taken into account.
-///
-/// To get the world-space version that takes the body's rotation into account, use the associated `rotated` method. Note that this operation is quite expensive, so use it sparingly.
-pub struct InvInertia(pub Mat3);
-
-impl InvInertia {
-    #[cfg(feature = "2d")]
-    pub const ZERO: Self = Self(0.0);
-    #[cfg(feature = "3d")]
-    pub const ZERO: Self = Self(Mat3::ZERO);
-
-    #[cfg(feature = "2d")]
-    /// In 2D this does nothing, but it is there for convenience so that you don't have to handle 2D and 3D separately.
-    pub fn rotated(&self, _rot: &Rot) -> Self {
-        *self
-    }
-
-    #[cfg(feature = "3d")]
-    pub fn rotated(&self, rot: &Rot) -> Self {
-        Self(get_rotated_inertia_tensor(self.0, rot.0))
-    }
-
-    #[cfg(feature = "2d")]
-    pub fn inverse(&self) -> Inertia {
-        Inertia(1.0 / self.0)
-    }
-
-    #[cfg(feature = "3d")]
-    pub fn inverse(&self) -> Inertia {
-        Inertia(self.0.inverse())
-    }
-}
-
-impl From<Inertia> for InvInertia {
-    fn from(inertia: Inertia) -> Self {
+    pub fn calc_inverse(inertia: Mat3) -> Mat3 {
         inertia.inverse()
+    }
+
+    #[cfg(feature = "2d")]
+    pub fn inverse(&self) -> f32 {
+        self.inverse
+    }
+
+    #[cfg(feature = "3d")]
+    pub fn inverse(&self) -> Mat3 {
+        self.inverse
+    }
+
+    #[cfg(feature = "2d")]
+    pub fn new(inertia: f32) -> Self {
+        Self {
+            inertia,
+            inverse: Inertia::calc_inverse(inertia),
+        }
+    }
+
+    #[cfg(feature = "3d")]
+    pub fn new(inertia: Mat3) -> Self {
+        Self {
+            inertia,
+            inverse: Inertia::calc_inverse(inertia),
+        }
+    }
+
+    #[cfg(feature = "2d")]
+    /// In 2D this does nothing, but it is there for convenience so that you don't have to handle 2D and 3D separately.
+    pub fn rotated(&self, _rot: &Rot) -> Self {
+        *self
+    }
+
+    #[cfg(feature = "3d")]
+    pub fn rotated(&self, rot: &Rot) -> Self {
+        let inertia = get_rotated_inertia_tensor(self.inertia, rot.0);
+        Self::new(inertia)
     }
 }
 
@@ -328,9 +307,7 @@ impl LocalCom {
 #[reflect(Component)]
 pub struct ColliderMassProperties {
     pub mass: Mass,
-    pub inv_mass: InvMass,
     pub inertia: Inertia,
-    pub inv_inertia: InvInertia,
     pub local_center_of_mass: LocalCom,
     pub density: f32,
 }
@@ -338,9 +315,7 @@ pub struct ColliderMassProperties {
 impl ColliderMassProperties {
     pub const ZERO: Self = Self {
         mass: Mass::ZERO,
-        inv_mass: InvMass(f32::INFINITY),
         inertia: Inertia::ZERO,
-        inv_inertia: InvInertia::ZERO,
         local_center_of_mass: LocalCom::ZERO,
         density: 0.0,
     };
@@ -350,20 +325,15 @@ impl ColliderMassProperties {
     /// Computes mass properties for a given shape and density.
     pub fn from_shape_and_density(shape: &SharedShape, density: f32) -> Self {
         let props = shape.mass_properties(density);
+        let mass = props.mass();
 
         Self {
-            mass: Mass(props.mass()),
-            inv_mass: InvMass(props.inv_mass),
+            mass: Mass::new(mass),
 
             #[cfg(feature = "2d")]
-            inertia: Inertia(props.principal_inertia()),
+            inertia: Inertia::new(props.principal_inertia()),
             #[cfg(feature = "3d")]
-            inertia: Inertia(props.reconstruct_inertia_matrix().into()),
-
-            #[cfg(feature = "2d")]
-            inv_inertia: InvInertia(1.0 / props.principal_inertia()),
-            #[cfg(feature = "3d")]
-            inv_inertia: InvInertia(props.reconstruct_inverse_inertia_matrix().into()),
+            inertia: Inertia::new(props.reconstruct_inertia_matrix().into()),
 
             local_center_of_mass: LocalCom(props.local_com.into()),
 

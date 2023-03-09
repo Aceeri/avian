@@ -46,8 +46,8 @@ impl PenetrationConstraint {
     ) {
         // Compute contact positions on the two bodies.
         // Subtracting the local center of mass from the position seems to be important for some shapes, although it's not shown in the paper. Something may be wrong elsewhere?
-        let p_a = body1.pos.0 - body1.local_com.0 + body1.rot.rotate(self.contact_data.local_r_a);
-        let p_b = body2.pos.0 - body2.local_com.0 + body2.rot.rotate(self.contact_data.local_r_b);
+        let p_a = body1.transform.translation() - body1.local_com.0 + body1.rot.rotate(self.contact_data.local_r_a);
+        let p_b = body2.transform.translation() - body2.local_com.0 + body2.rot.rotate(self.contact_data.local_r_b);
 
         let d = (p_a - p_b).dot(self.contact_data.normal);
 
@@ -58,8 +58,8 @@ impl PenetrationConstraint {
 
         let n = self.contact_data.normal;
 
-        let inv_inertia1 = body1.inv_inertia.rotated(&body1.rot);
-        let inv_inertia2 = body2.inv_inertia.rotated(&body2.rot);
+        let inertia1 = body1.inertia.rotated(&body1.rot);
+        let inertia2 = body2.inertia.rotated(&body2.rot);
 
         let delta_lagrange_n = Self::get_delta_pos_lagrange(
             body1,

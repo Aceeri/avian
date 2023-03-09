@@ -21,3 +21,6 @@ web-sys = "0.3.59"
 
 [dev-dependencies]
 examples_common_3d = { path = "../examples_common_3d" }
+
+[package.metadata.rust-analyzer.cargo]
+features = ["3d"]
