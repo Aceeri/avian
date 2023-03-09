@@ -24,8 +24,8 @@ pub mod prelude {
 
 mod utils;
 
-use bevy::{ecs::schedule::ShouldRun, prelude::*};
-use bevy_prototype_debug_lines::*;
+use bevy::prelude::*;
+//use bevy_prototype_debug_lines::*;
 use parry::math::Isometry;
 use prelude::*;
 
@@ -36,9 +36,6 @@ pub type Vector = Vec2;
 pub type Vector = Vec3;
 
 pub const DELTA_TIME: f32 = 1.0 / 60.0;
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
-struct FixedUpdateStage;
 
 pub struct XpbdPlugin;
 
@@ -69,26 +66,20 @@ impl Plugin for XpbdPlugin {
             .register_type::<InvInertia>()
             .register_type::<LocalCom>();
 
-        // Add stages
-        app.add_stage_before(
-            CoreStage::Update,
-            FixedUpdateStage,
-            SystemStage::parallel().with_run_criteria(run_criteria),
-        );
-
         // Add plugins for physics simulation loop
         app.add_plugin(PreparePlugin)
             .add_plugin(BroadPhasePlugin)
             .add_plugin(IntegratorPlugin)
             .add_plugin(SolverPlugin);
 
-        app.add_plugin(DebugLinesPlugin::default());
+        //app.add_plugin(DebugLinesPlugin::default());
 
         #[cfg(feature = "debug-render-aabbs")]
         app.add_system(draw_aabbs);
     }
 }
 
+/*
 #[cfg(feature = "debug-render-aabbs")]
 fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>) {
     #[cfg(feature = "2d")]
@@ -129,11 +120,9 @@ fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>) {
         lines.line(v4, v8, 0.0);
     }
 }
-
+ */
 #[derive(Resource, Debug, Default)]
 pub struct XpbdLoop {
-    pub(crate) has_added_time: bool,
-    pub(crate) accumulator: f32,
     pub(crate) substepping: bool,
     pub(crate) current_substep: u32,
     pub(crate) queued_steps: u32,
@@ -160,57 +149,6 @@ pub fn resume(mut xpbd_loop: ResMut<XpbdLoop>) {
     xpbd_loop.resume();
 }
 
-fn run_criteria(
-    time: Res<Time>,
-    substeps: Res<NumSubsteps>,
-    mut state: ResMut<XpbdLoop>,
-) -> ShouldRun {
-    if state.paused && state.queued_steps == 0 {
-        return ShouldRun::No;
-    }
-
-    if !state.has_added_time {
-        state.has_added_time = true;
-
-        if state.paused {
-            state.accumulator += DELTA_TIME * state.queued_steps as f32;
-        } else {
-            state.accumulator += time.delta_seconds();
-        }
-    }
-
-    if state.substepping {
-        state.current_substep += 1;
-
-        if state.current_substep < substeps.0 {
-            return ShouldRun::YesAndCheckAgain;
-        } else {
-            // We finished a whole step
-            if state.paused && state.queued_steps > 0 {
-                state.queued_steps -= 1;
-            } else {
-                state.accumulator -= DELTA_TIME;
-            }
-
-            state.current_substep = 0;
-            state.substepping = false;
-        }
-    }
-
-    if state.accumulator >= DELTA_TIME {
-        state.substepping = true;
-        state.current_substep = 0;
-        ShouldRun::YesAndCheckAgain
-    } else {
-        state.has_added_time = false;
-        ShouldRun::No
-    }
-}
-
-fn first_substep(state: Res<XpbdLoop>) -> ShouldRun {
-    if state.current_substep == 0 {
-        ShouldRun::Yes
-    } else {
-        ShouldRun::No
-    }
+fn first_substep(state: Res<XpbdLoop>) -> bool {
+    state.current_substep == 0
 }

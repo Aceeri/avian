@@ -8,11 +8,15 @@ pub use integrator::IntegratorPlugin;
 pub use prepare::PreparePlugin;
 pub use solver::SolverPlugin;
 
-use bevy::prelude::SystemLabel;
+use bevy::ecs::schedule::{ScheduleLabel, SystemSet};
+use bevy::prelude::*;
+
+#[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct PhysicsSchedule;
 
 /// The main steps in the physics simulation loop.
-#[derive(SystemLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PhysicsStep {
+#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PhysicsSet {
     /// In the preparation step, necessary preparations and updates will be run before the rest of the physics simulation loop.
     /// For example, bevy `Transform`s are synchronized with the physics world, AABBs are updated etc.
     Prepare,
@@ -28,4 +32,13 @@ pub enum PhysicsStep {
     UpdateVel,
     /// During the velocity solving step, a velocity update caused by properties like restitution and friction will be applied to all particles and bodies.
     SolveVel,
+
+    Clear,
+}
+
+pub fn step_physics(world: &mut World) {
+    let substeps = world.resource::<crate::NumSubsteps>().0;
+    for substep in 0..substeps {
+        world.run_schedule(PhysicsSchedule);
+    }
 }

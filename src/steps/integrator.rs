@@ -5,6 +5,7 @@ pub struct IntegratorPlugin;
 
 impl Plugin for IntegratorPlugin {
     fn build(&self, app: &mut App) {
+        /*
         app.add_system_set_to_stage(
             FixedUpdateStage,
             SystemSet::new()
@@ -13,6 +14,7 @@ impl Plugin for IntegratorPlugin {
                 .with_system(integrate_pos)
                 .with_system(integrate_rot),
         );
+         */
     }
 }
 

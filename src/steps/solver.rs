@@ -1,6 +1,6 @@
 use crate::{
-    prelude::*,
     collision::*,
+    prelude::*,
     steps::broad_phase::BroadCollisionPairs,
     utils::{get_dynamic_friction, get_restitution},
 };
@@ -11,47 +11,49 @@ pub struct SolverPlugin;
 
 impl Plugin for SolverPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PenetrationConstraints>()
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .before(PhysicsStep::SolvePos)
-                    .with_system(clear_penetration_constraint_lagrange)
-                    .with_system(clear_joint_lagrange::<FixedJoint>)
-                    .with_system(clear_joint_lagrange::<RevoluteJoint>)
-                    .with_system(clear_joint_lagrange::<SphericalJoint>)
-                    .with_system(clear_joint_lagrange::<PrismaticJoint>),
-            )
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .label(PhysicsStep::SolvePos)
-                    .after(PhysicsStep::Integrate)
-                    .with_system(penetration_constraints)
-                    .with_system(joint_constraints::<FixedJoint>)
-                    .with_system(joint_constraints::<RevoluteJoint>)
-                    .with_system(joint_constraints::<SphericalJoint>)
-                    .with_system(joint_constraints::<PrismaticJoint>),
-            )
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .label(PhysicsStep::UpdateVel)
-                    .after(PhysicsStep::SolvePos)
-                    .with_system(update_lin_vel)
-                    .with_system(update_ang_vel),
-            )
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .label(PhysicsStep::SolveVel)
-                    .after(PhysicsStep::UpdateVel)
-                    .with_system(solve_vel)
-                    .with_system(joint_damping::<FixedJoint>)
-                    .with_system(joint_damping::<RevoluteJoint>)
-                    .with_system(joint_damping::<SphericalJoint>)
-                    .with_system(joint_damping::<PrismaticJoint>),
-            );
+        app.init_resource::<PenetrationConstraints>();
+
+        app.add_system(clear_penetration_constraint_lagrange.in_set(PhysicsSet::Clear));
+        app.add_system(clear_joint_lagrange::<FixedJoint>.in_set(PhysicsSet::Clear));
+        app.add_system(clear_joint_lagrange::<RevoluteJoint>.in_set(PhysicsSet::Clear));
+        app.add_system(clear_joint_lagrange::<SphericalJoint>.in_set(PhysicsSet::Clear));
+        app.add_system(clear_joint_lagrange::<PrismaticJoint>.in_set(PhysicsSet::Clear));
+
+        /*
+                        .in_schedule(PhysicsSchedule)
+                        .before(PhysicsSet::SolvePos),
+                );
+                .add_systems(
+                    (
+                        penetration_constraints,
+                        joint_constraints::<FixedJoint>,
+                        joint_constraints::<RevoluteJoint>,
+                        joint_constraints::<SphericalJoint>,
+                        joint_constraints::<PrismaticJoint>,
+                    )
+                        .in_base_set(CoreSet::FixedUpdate)
+                        .in_set(PhysicsStep::SolvePos)
+                        .after(PhysicsStep::Integrate),
+                )
+                .add_systems(
+                    (update_lin_vel, update_ang_vel)
+                        .in_base_set(CoreSet::FixedUpdate)
+                        .in_set(PhysicsStep::UpdateVel)
+                        .after(PhysicsStep::SolvePos),
+                )
+                .add_systems(
+                    (
+                        solve_vel,
+                        joint_damping::<FixedJoint>,
+                        joint_damping::<RevoluteJoint>,
+                        joint_damping::<SphericalJoint>,
+                        joint_damping::<PrismaticJoint>,
+                    )
+                        .in_schedule(PhysicsStep)
+                        .in_set(PhysicsStep::SolveVel)
+                        .after(PhysicsStep::UpdateVel),
+                );
+        */
     }
 }
 
@@ -84,7 +86,8 @@ fn penetration_constraints(
 
     for (ent1, ent2) in broad_collision_pairs.0.iter() {
         if let Ok([(mut body1, collider_shape1), (mut body2, collider_shape2)]) =
-            bodies.get_many_mut([*ent1, *ent2]){
+            bodies.get_many_mut([*ent1, *ent2])
+        {
             if let Some(collision) = get_collision(
                 *ent1,
                 *ent2,

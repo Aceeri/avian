@@ -9,29 +9,34 @@ pub struct XpbdExamplePlugin;
 impl Plugin for XpbdExamplePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(XpbdPlugin)
-            .add_plugin(WorldInspectorPlugin)
+            //.add_plugin(bevy_editor_pls::EditorPlugin)
+            //.add_plugin(WorldInspectorPlugin)
             .add_plugin(FrameTimeDiagnosticsPlugin)
-            .add_state(AppState::Running)
-            .add_system_set(SystemSet::on_enter(AppState::Paused).with_system(bevy_xpbd_3d::pause))
-            .add_system_set(SystemSet::on_exit(AppState::Paused).with_system(bevy_xpbd_3d::resume))
-            .add_system(pause_button)
-            .add_system_set(SystemSet::on_update(AppState::Paused).with_system(step_button));
+            .add_state::<AppState>();
+        //.add_system(SystemSet::on_enter(AppState::Paused).with_system(bevy_xpbd_3d::pause))
+        //.add_system(SystemSet::on_exit(AppState::Paused).with_system(bevy_xpbd_3d::resume))
+        //.add_system(pause_button)
+        //.add_system(SystemSet::on_update(AppState::Paused).with_system(step_button));
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(States, Default, Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AppState {
     Paused,
+    #[default]
     Running,
 }
 
-fn pause_button(mut app_state: ResMut<State<AppState>>, keys: Res<Input<KeyCode>>) {
+fn pause_button(
+    current: Res<State<AppState>>,
+    mut next: ResMut<NextState<AppState>>,
+    keys: Res<Input<KeyCode>>,
+) {
     if keys.just_pressed(KeyCode::P) {
-        let new_state = match app_state.current() {
+        next.set(match current.0 {
             AppState::Paused => AppState::Running,
             AppState::Running => AppState::Paused,
-        };
-        app_state.set(new_state).unwrap();
+        });
     }
 }
 

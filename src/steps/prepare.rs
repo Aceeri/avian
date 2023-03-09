@@ -5,17 +5,19 @@ pub struct PreparePlugin;
 
 impl Plugin for PreparePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_system_set_to_stage(
-            FixedUpdateStage,
-            SystemSet::new()
-                .before(PhysicsStep::BroadPhase)
-                .label(PhysicsStep::Prepare)
-                .with_run_criteria(first_substep)
-                .with_system(sync_transforms)
-                .with_system(update_sub_delta_time)
-                .with_system(update_aabb)
-                .with_system(update_mass_props),
-        );
+        /*
+               app.add_systems(
+                   (
+                       sync_transforms,
+                       update_sub_delta_time,
+                       update_aabb,
+                       update_mass_props,
+                   )
+                       .before(PhysicsStep::BroadPhase)
+                       .label(PhysicsStep::Prepare)
+                       .in_set(CoreSchedule::FixedUpdate),
+               );
+        */
     }
 }
 
