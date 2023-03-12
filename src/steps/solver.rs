@@ -1,6 +1,7 @@
 use crate::{
-    narrow_phase::{Collision, Collisions},
+    collision::*,
     prelude::*,
+    steps::broad_phase::BroadCollisionPairs,
     utils::{get_dynamic_friction, get_restitution},
 };
 use bevy::prelude::*;
@@ -10,53 +11,57 @@ pub struct SolverPlugin;
 
 impl Plugin for SolverPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PenetrationConstraints>()
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .before(PhysicsStep::SolvePos)
-                    .with_system(clear_penetration_constraint_lagrange)
-                    .with_system(clear_joint_lagrange::<FixedJoint>)
-                    .with_system(clear_joint_lagrange::<RevoluteJoint>)
-                    .with_system(clear_joint_lagrange::<SphericalJoint>)
-                    .with_system(clear_joint_lagrange::<PrismaticJoint>),
+        app.init_resource::<PenetrationConstraints>();
+
+        let substeps = app
+            .get_schedule_mut(XpbdSubstepSchedule)
+            .expect("add XpbdSubstepSchedule first");
+
+        substeps.add_systems(
+            (
+                clear_penetration_constraint_lagrange,
+                clear_joint_lagrange::<FixedJoint>,
+                clear_joint_lagrange::<RevoluteJoint>,
+                clear_joint_lagrange::<SphericalJoint>,
+                clear_joint_lagrange::<PrismaticJoint>,
             )
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .label(PhysicsStep::SolvePos)
-                    .after(PhysicsStep::NarrowPhase)
-                    .with_system(solve_pos)
-                    .with_system(joint_constraints::<FixedJoint>)
-                    .with_system(joint_constraints::<RevoluteJoint>)
-                    .with_system(joint_constraints::<SphericalJoint>)
-                    .with_system(joint_constraints::<PrismaticJoint>),
+                .before(PhysicsSubstep::SolvePos),
+        );
+
+        // todo: just use chain?
+        substeps.configure_set(PhysicsSubstep::SolvePos.after(PhysicsSubstep::Integrate));
+        substeps.configure_set(PhysicsSubstep::UpdateVel.after(PhysicsSubstep::SolvePos));
+        substeps.configure_set(PhysicsSubstep::SolveVel.after(PhysicsSubstep::UpdateVel));
+
+        substeps.add_systems(
+            (
+                penetration_constraints,
+                joint_constraints::<FixedJoint>,
+                joint_constraints::<RevoluteJoint>,
+                joint_constraints::<SphericalJoint>,
+                joint_constraints::<PrismaticJoint>,
             )
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .label(PhysicsStep::UpdateVel)
-                    .after(PhysicsStep::SolvePos)
-                    .with_system(update_lin_vel)
-                    .with_system(update_ang_vel),
+                .in_set(PhysicsSubstep::SolvePos),
+        );
+
+        substeps.add_systems((update_lin_vel, update_ang_vel).in_set(PhysicsSubstep::UpdateVel));
+
+        substeps.add_systems(
+            (
+                solve_vel,
+                joint_damping::<FixedJoint>,
+                joint_damping::<RevoluteJoint>,
+                joint_damping::<SphericalJoint>,
+                joint_damping::<PrismaticJoint>,
             )
-            .add_system_set_to_stage(
-                FixedUpdateStage,
-                SystemSet::new()
-                    .label(PhysicsStep::SolveVel)
-                    .after(PhysicsStep::UpdateVel)
-                    .with_system(solve_vel)
-                    .with_system(joint_damping::<FixedJoint>)
-                    .with_system(joint_damping::<RevoluteJoint>)
-                    .with_system(joint_damping::<SphericalJoint>)
-                    .with_system(joint_damping::<PrismaticJoint>),
-            );
+                .in_set(PhysicsSubstep::SolveVel),
+        );
     }
 }
 
 /// Stores penetration constraints for colliding entity pairs.
 #[derive(Resource, Debug, Default)]
-pub(crate) struct PenetrationConstraints(pub Vec<PenetrationConstraint>);
+pub struct PenetrationConstraints(pub Vec<PenetrationConstraint>);
 
 fn clear_penetration_constraint_lagrange(
     mut penetration_constraints: ResMut<PenetrationConstraints>,
@@ -72,26 +77,35 @@ fn clear_joint_lagrange<T: Joint>(mut joints: Query<&mut T>) {
     }
 }
 
-/// Solves position constraints for dynamic-dynamic interactions.
-fn solve_pos(
-    mut bodies: Query<RigidBodyQuery>,
-    collisions: Res<Collisions>,
+/// Iterates through broad phase collision pairs, checks which ones are actually colliding, and creates penetration constraints for them.
+fn penetration_constraints(
+    mut bodies: Query<(RigidBodyQuery, &ColliderShape)>,
+    broad_collision_pairs: Res<BroadCollisionPairs>,
     mut penetration_constraints: ResMut<PenetrationConstraints>,
     sub_dt: Res<SubDeltaTime>,
 ) {
     penetration_constraints.0.clear();
 
-    // Handle non-penetration constraints
-    for ((ent1, ent2), collision) in collisions.0.iter() {
-        if let Ok([mut body1, mut body2]) = bodies.get_many_mut([*ent1, *ent2]) {
-            // No need to solve collisions if neither of the bodies is dynamic
-            if !body1.rb.is_dynamic() && !body2.rb.is_dynamic() {
-                continue;
+    for (ent1, ent2) in broad_collision_pairs.0.iter() {
+        if let Ok([(mut body1, collider_shape1), (mut body2, collider_shape2)]) =
+            bodies.get_many_mut([*ent1, *ent2])
+        {
+            if let Some(collision) = get_collision(
+                *ent1,
+                *ent2,
+                body1.pos.0,
+                body2.pos.0,
+                body1.local_com.0,
+                body2.local_com.0,
+                &body1.rot,
+                &body2.rot,
+                &collider_shape1.0,
+                &collider_shape2.0,
+            ) {
+                let mut constraint = PenetrationConstraint::new(*ent1, *ent2, collision);
+                constraint.constrain(&mut body1, &mut body2, sub_dt.0);
+                penetration_constraints.0.push(constraint);
             }
-
-            let mut constraint = PenetrationConstraint::new(*ent1, *ent2, *collision);
-            constraint.constrain(&mut body1, &mut body2, sub_dt.0);
-            penetration_constraints.0.push(constraint);
         }
     }
 }

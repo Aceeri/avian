@@ -1,19 +1,17 @@
 pub mod broad_phase;
 pub mod integrator;
-pub mod narrow_phase;
 pub mod prepare;
 pub mod solver;
 
 pub use broad_phase::BroadPhasePlugin;
 pub use integrator::IntegratorPlugin;
-pub use narrow_phase::NarrowPhasePlugin;
 pub use prepare::PreparePlugin;
 pub use solver::SolverPlugin;
 
-use bevy::prelude::SystemLabel;
+use bevy::prelude::SystemSet;
 
 /// The main steps in the physics simulation loop.
-#[derive(SystemLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PhysicsStep {
     /// In the preparation step, necessary preparations and updates will be run before the rest of the physics simulation loop.
     /// For example, bevy `Transform`s are synchronized with the physics world, AABBs are updated etc.
@@ -22,11 +20,17 @@ pub enum PhysicsStep {
     ///
     /// The broad phase speeds up collision detection, as the number of accurate collision checks is greatly reduced.
     BroadPhase,
-    /// During the narrow phase, pairs of entities collected in the [`PhysicsStep::BroadPhase`] will be checked for collisions. The data for each collision is stored in the [`Collisions`] resource.
-    NarrowPhase,
+    Substeps,
+    // todo: what about sync transforms?
+}
+
+// todo: Think about another name?
+/// The steps in the inner substepping loop
+#[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PhysicsSubstep {
     /// In the integration step, the position and velocity of each particle and body is explicitly integrated, taking only external forces like gravity (and forces applied by the user) into account.
     Integrate,
-    /// The position solving step iterates through constraints, and moves particles and bodies accordingly. This is used for things like joints and resolving collisions through non-penetration constraints.
+    /// The position solving step iterates through constraints, and moves particles and bodies accordingly. This step is also responsible for narrow phase collision detection, as it creates non-penetration constraints for colliding bodies.
     SolvePos,
     /// In the velocity update step, new velocities are derived for all particles and bodies after the position solving step.
     UpdateVel,

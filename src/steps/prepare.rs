@@ -1,21 +1,23 @@
-use crate::prelude::*;
+use crate::{prelude::*, utils::make_isometry};
 use bevy::prelude::*;
 
 pub struct PreparePlugin;
 
 impl Plugin for PreparePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_system_set_to_stage(
-            FixedUpdateStage,
-            SystemSet::new()
-                .before(PhysicsStep::BroadPhase)
-                .label(PhysicsStep::Prepare)
-                .with_run_criteria(first_substep)
-                .with_system(sync_transforms)
-                .with_system(update_sub_delta_time)
-                .with_system(update_aabb)
-                .with_system(update_mass_props),
-        );
+        app.get_schedule_mut(XpbdSchedule)
+            .expect("add xpbd schedule first")
+            // todo: move set config to top-level plugin?
+            .configure_set(PhysicsStep::Prepare.before(PhysicsStep::BroadPhase))
+            .add_systems(
+                (
+                    sync_transforms,
+                    update_sub_delta_time,
+                    update_aabb,
+                    update_mass_props,
+                )
+                    .in_set(PhysicsStep::Prepare),
+            );
     }
 }
 
@@ -37,27 +39,33 @@ fn sync_transforms(mut bodies: Query<(&mut Transform, &Pos, &Rot)>) {
     }
 }
 
-type AABBChanged = Or<(Changed<Pos>, Changed<Rot>, Changed<LinVel>)>;
+type AABBChanged = Or<(Changed<Pos>, Changed<Rot>, Changed<LinVel>, Changed<AngVel>)>;
 
 /// Updates the Axis-Aligned Bounding Boxes of all colliders. A safety margin will be added to account for sudden accelerations.
-fn update_aabb(mut bodies: Query<(ColliderQuery, &Pos, &Rot, Option<&LinVel>), AABBChanged>) {
+#[allow(clippy::type_complexity)]
+fn update_aabb(
+    mut bodies: Query<(ColliderQuery, &Pos, &Rot, Option<&LinVel>, Option<&AngVel>), AABBChanged>,
+) {
     // Safety margin multiplier bigger than DELTA_TIME to account for sudden accelerations
-    let safety_margin_factor = 1.5 * DELTA_TIME;
+    let safety_margin_factor = 2.0 * DELTA_TIME;
 
-    for (mut collider, pos, rot, lin_vel) in &mut bodies {
-        let lin_vel = lin_vel.map_or(Vector::ZERO, |v| v.0);
+    for (mut collider, pos, rot, lin_vel, ang_vel) in &mut bodies {
+        let lin_vel_len = lin_vel.map_or(0.0, |v| v.length());
 
-        let half_extents = Vector::from(
-            collider
-                .shape
-                .compute_aabb(&Isometry::new(pos.0.into(), (*rot).into()))
-                .half_extents(),
-        );
+        #[cfg(feature = "2d")]
+        let ang_vel_len = ang_vel.map_or(0.0, |v| v.abs());
+        #[cfg(feature = "3d")]
+        let ang_vel_len = ang_vel.map_or(0.0, |v| v.length());
+
+        let computed_aabb = collider.shape.compute_aabb(&make_isometry(pos.0, rot));
+        let half_extents = Vector::from(computed_aabb.half_extents());
+
         // Add a safety margin.
-        let scaled_half_extents = half_extents + safety_margin_factor * lin_vel.length();
+        let safety_margin = safety_margin_factor * (lin_vel_len + ang_vel_len);
+        let extended_half_extents = half_extents + safety_margin;
 
-        collider.aabb.mins.coords = (pos.0 - scaled_half_extents).into();
-        collider.aabb.maxs.coords = (pos.0 + scaled_half_extents).into();
+        collider.aabb.mins.coords = (pos.0 - extended_half_extents).into();
+        collider.aabb.maxs.coords = (pos.0 + extended_half_extents).into();
     }
 }
 
