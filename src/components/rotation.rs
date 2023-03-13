@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
@@ -11,26 +12,26 @@ use crate::Vector;
 #[derive(Reflect, Clone, Copy, Component, Debug)]
 #[reflect(Component)]
 pub struct Rot {
-    pub cos: f32,
-    pub sin: f32,
+    pub cos: f64,
+    pub sin: f64,
 }
 
 #[cfg(feature = "3d")]
 #[derive(Reflect, Clone, Copy, Component, Debug, Default, Deref, DerefMut)]
 #[reflect(Component)]
-pub struct Rot(pub Quat);
+pub struct Rot(pub DQuat);
 
 impl Rot {
     #[cfg(feature = "2d")]
-    pub fn rotate_vec3(&self, vec: Vec3) -> Vec3 {
-        Vec3::new(
+    pub fn rotate_vec3(&self, vec: DVec3) -> DVec3 {
+        DVec3::new(
             vec.x * self.cos() - vec.y * self.sin(),
             vec.x * self.sin() + vec.y * self.cos(),
             vec.z,
         )
     }
     #[cfg(feature = "3d")]
-    pub fn rotate_vec3(&self, vec: Vec3) -> Vec3 {
+    pub fn rotate_vec3(&self, vec: DVec3) -> DVec3 {
         self.0 * vec
     }
 }
@@ -39,30 +40,30 @@ impl Rot {
 impl Rot {
     pub const ZERO: Self = Self { cos: 1.0, sin: 0.0 };
 
-    pub fn cos(&self) -> f32 {
+    pub fn cos(&self) -> f64 {
         self.cos
     }
 
-    pub fn sin(&self) -> f32 {
+    pub fn sin(&self) -> f64 {
         self.sin
     }
 
-    pub fn from_radians(radians: f32) -> Self {
+    pub fn from_radians(radians: f64) -> Self {
         Self {
             cos: radians.cos(),
             sin: radians.sin(),
         }
     }
 
-    pub fn from_degrees(degrees: f32) -> Self {
+    pub fn from_degrees(degrees: f64) -> Self {
         Self::from_radians(degrees.to_radians())
     }
 
-    pub fn as_radians(&self) -> f32 {
-        f32::atan2(self.sin(), self.cos())
+    pub fn as_radians(&self) -> f64 {
+        f64::atan2(self.sin(), self.cos())
     }
 
-    pub fn as_degrees(&self) -> f32 {
+    pub fn as_degrees(&self) -> f64 {
         self.as_radians().to_degrees()
     }
 
@@ -151,40 +152,40 @@ impl SubAssign<Self> for Rot {
 }
 
 #[cfg(feature = "2d")]
-impl From<Rot> for f32 {
+impl From<Rot> for f64 {
     fn from(rot: Rot) -> Self {
         rot.as_radians()
     }
 }
 
 #[cfg(feature = "2d")]
-impl From<Rot> for Quat {
+impl From<Rot> for DQuat {
     fn from(rot: Rot) -> Self {
         if rot.cos() < 0.0 {
             let t = 1.0 - rot.cos();
             let d = 1.0 / (t * 2.0).sqrt();
             let z = -rot.sin() * d;
             let w = t * d;
-            Quat::from_xyzw(0.0, 0.0, z, w)
+            DQuat::from_xyzw(0.0, 0.0, z, w)
         } else {
             let t = 1.0 + rot.cos();
             let d = 1.0 / (t * 2.0).sqrt();
             let z = t * d;
             let w = -rot.sin() * d;
-            Quat::from_xyzw(0.0, 0.0, z, w)
+            DQuat::from_xyzw(0.0, 0.0, z, w)
         }
     }
 }
 
 #[cfg(feature = "3d")]
-impl From<Rot> for Quat {
+impl From<Rot> for DQuat {
     fn from(rot: Rot) -> Self {
         rot.0
     }
 }
 
 #[cfg(feature = "3d")]
-impl From<Rot> for Matrix3x1<f32> {
+impl From<Rot> for Matrix3x1<f64> {
     fn from(rot: Rot) -> Self {
         Matrix3x1::new(rot.x, rot.y, rot.z)
     }

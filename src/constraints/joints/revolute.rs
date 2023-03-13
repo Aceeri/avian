@@ -11,30 +11,30 @@ pub struct RevoluteJoint {
     /// A unit vector that controls which axis is aligned for both entities.
     ///
     /// In 2D this should always be the Z axis.
-    pub(crate) aligned_axis: Vec3,
+    pub(crate) aligned_axis: DVec3,
     #[cfg(feature = "3d")]
     /// A unit vector that controls which axis is aligned for both entities.
-    pub aligned_axis: Vec3,
+    pub aligned_axis: DVec3,
     pub angle_limit: Option<JointLimit>,
-    pub damping_lin: f32,
-    pub damping_ang: f32,
-    pub pos_lagrange: f32,
-    pub align_lagrange: f32,
-    pub angle_limit_lagrange: f32,
-    pub compliance: f32,
+    pub damping_lin: f64,
+    pub damping_ang: f64,
+    pub pos_lagrange: f64,
+    pub align_lagrange: f64,
+    pub angle_limit_lagrange: f64,
+    pub compliance: f64,
     pub force: Vector,
     pub align_torque: Torque,
     pub angle_limit_torque: Torque,
 }
 
 impl Joint for RevoluteJoint {
-    fn new_with_compliance(entity1: Entity, entity2: Entity, compliance: f32) -> Self {
+    fn new_with_compliance(entity1: Entity, entity2: Entity, compliance: f64) -> Self {
         Self {
             entity1,
             entity2,
             local_anchor1: Vector::ZERO,
             local_anchor2: Vector::ZERO,
-            aligned_axis: Vec3::Z,
+            aligned_axis: DVec3::Z,
             angle_limit: None,
             damping_lin: 1.0,
             damping_ang: 1.0,
@@ -46,11 +46,11 @@ impl Joint for RevoluteJoint {
             #[cfg(feature = "2d")]
             align_torque: 0.0,
             #[cfg(feature = "3d")]
-            align_torque: Vec3::ZERO,
+            align_torque: DVec3::ZERO,
             #[cfg(feature = "2d")]
             angle_limit_torque: 0.0,
             #[cfg(feature = "3d")]
-            angle_limit_torque: Vec3::ZERO,
+            angle_limit_torque: DVec3::ZERO,
         }
     }
 
@@ -68,14 +68,14 @@ impl Joint for RevoluteJoint {
         }
     }
 
-    fn with_lin_vel_damping(self, damping: f32) -> Self {
+    fn with_lin_vel_damping(self, damping: f64) -> Self {
         Self {
             damping_lin: damping,
             ..self
         }
     }
 
-    fn with_ang_vel_damping(self, damping: f32) -> Self {
+    fn with_ang_vel_damping(self, damping: f64) -> Self {
         Self {
             damping_ang: damping,
             ..self
@@ -86,11 +86,11 @@ impl Joint for RevoluteJoint {
         [self.entity1, self.entity2]
     }
 
-    fn damping_lin(&self) -> f32 {
+    fn damping_lin(&self) -> f64 {
         self.damping_lin
     }
 
-    fn damping_ang(&self) -> f32 {
+    fn damping_ang(&self) -> f64 {
         self.damping_ang
     }
 
@@ -99,12 +99,12 @@ impl Joint for RevoluteJoint {
         &mut self,
         body1: &mut RigidBodyQueryItem,
         body2: &mut RigidBodyQueryItem,
-        sub_dt: f32,
+        sub_dt: f64,
     ) {
         let delta_q = self.get_delta_q(&body1.rot, &body2.rot);
         let angle = delta_q.length();
 
-        if angle > f32::EPSILON {
+        if angle > f64::EPSILON {
             let axis = delta_q / angle;
 
             let inv_inertia1 = body1.inv_inertia.rotated(&body1.rot);
@@ -142,7 +142,7 @@ impl Joint for RevoluteJoint {
         let delta_x = self.limit_distance(0.0, 0.0, world_r1, world_r2, &body1.pos, &body2.pos);
         let magnitude = delta_x.length();
 
-        if magnitude > f32::EPSILON {
+        if magnitude > f64::EPSILON {
             let dir = delta_x / magnitude;
 
             let inv_inertia1 = body1.inv_inertia.rotated(&body1.rot);
@@ -184,21 +184,21 @@ impl Joint for RevoluteJoint {
 
 impl RevoluteJoint {
     #[cfg(feature = "3d")]
-    pub fn with_aligned_axis(self, axis: Vec3) -> Self {
+    pub fn with_aligned_axis(self, axis: DVec3) -> Self {
         Self {
             aligned_axis: axis,
             ..self
         }
     }
 
-    pub fn with_angle_limits(self, min: f32, max: f32) -> Self {
+    pub fn with_angle_limits(self, min: f64, max: f64) -> Self {
         Self {
             angle_limit: Some(JointLimit::new(min, max)),
             ..self
         }
     }
 
-    fn get_delta_q(&self, rot1: &Rot, rot2: &Rot) -> Vec3 {
+    fn get_delta_q(&self, rot1: &Rot, rot2: &Rot) -> DVec3 {
         let a1 = rot1.rotate_vec3(self.aligned_axis);
         let a2 = rot2.rotate_vec3(self.aligned_axis);
         a1.cross(a2)
@@ -209,10 +209,10 @@ impl RevoluteJoint {
         &mut self,
         body1: &mut RigidBodyQueryItem,
         body2: &mut RigidBodyQueryItem,
-        sub_dt: f32,
+        sub_dt: f64,
     ) {
         if let Some(angle_limit) = self.angle_limit {
-            let limit_axis = Vec3::new(
+            let limit_axis = DVec3::new(
                 self.aligned_axis.z,
                 self.aligned_axis.x,
                 self.aligned_axis.y,
@@ -227,11 +227,11 @@ impl RevoluteJoint {
                 a2,
                 angle_limit.min,
                 angle_limit.max,
-                std::f32::consts::PI,
+                std::f64::consts::PI,
             ) {
                 let angle = delta_q.length();
 
-                if angle > f32::EPSILON {
+                if angle > f64::EPSILON {
                     let axis = delta_q / angle;
 
                     let inv_inertia1 = body1.inv_inertia.rotated(&body1.rot);
@@ -266,12 +266,12 @@ impl RevoluteJoint {
         }
     }
 
-    fn update_force(&mut self, dir: Vector, sub_dt: f32) {
+    fn update_force(&mut self, dir: Vector, sub_dt: f64) {
         // Eq (10)
         self.force = self.pos_lagrange * dir / sub_dt.powi(2);
     }
 
-    fn update_align_torque(&mut self, axis: Vec3, sub_dt: f32) {
+    fn update_align_torque(&mut self, axis: DVec3, sub_dt: f64) {
         // Eq (17)
         #[cfg(feature = "2d")]
         {
@@ -283,7 +283,7 @@ impl RevoluteJoint {
         }
     }
 
-    fn update_angle_limit_torque(&mut self, axis: Vec3, sub_dt: f32) {
+    fn update_angle_limit_torque(&mut self, axis: DVec3, sub_dt: f64) {
         // Eq (17)
         #[cfg(feature = "2d")]
         {

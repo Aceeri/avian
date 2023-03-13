@@ -16,7 +16,7 @@ required-features = [ "2d" ]
 [dependencies]
 bevy = { version = "0.9.1", default-features = false }
 bevy_prototype_debug_lines = "0.9"
-parry2d = { version = "0.13.1", features = [ "simd-stable" ] }
+parry2d-f64 = { version = "0.13.1", features = [ "simd-stable" ] }
 nalgebra = { version = "0.32.1", features = [ "convert-glam022" ] }
 console_error_panic_hook = "0.1.7"
 web-sys = "0.3.59"

@@ -1,4 +1,5 @@
 use bevy::prelude::Resource;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 use crate::{Vector, DELTA_TIME};
 
@@ -24,11 +25,11 @@ impl Default for NumPosIters {
 
 /// Substep delta time
 #[derive(Resource)]
-pub(crate) struct SubDeltaTime(pub f32);
+pub(crate) struct SubDeltaTime(pub f64);
 
 impl Default for SubDeltaTime {
     fn default() -> Self {
-        Self(DELTA_TIME / NumSubsteps::default().0 as f32)
+        Self(DELTA_TIME / NumSubsteps::default().0 as f64)
     }
 }
 

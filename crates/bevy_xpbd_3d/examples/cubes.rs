@@ -1,15 +1,16 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::prelude::*;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 use examples_common_3d::XpbdExamplePlugin;
 
 #[derive(Component)]
 struct Player;
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MoveAcceleration(pub f32);
+pub struct MoveAcceleration(pub f64);
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MaxLinearVelocity(pub Vec3);
+pub struct MaxLinearVelocity(pub DVec3);
 
 fn setup(
     mut commands: Commands,
@@ -28,15 +29,15 @@ fn setup(
         ..default()
     });
 
-    let floor_size = Vec3::new(80.0, 1.0, 80.0);
+    let floor_size = DVec3::new(80.0, 1.0, 80.0);
     let _floor = commands
         .spawn(PbrBundle {
             mesh: cube.clone(),
             material: white,
-            transform: Transform::from_scale(floor_size),
+            transform: Transform::from_scale(floor_size.as_vec3()),
             ..default()
         })
-        .insert(RigidBodyBundle::new_static().with_pos(Vec3::new(0.0, -1.0, 0.0)))
+        .insert(RigidBodyBundle::new_static().with_pos(DVec3::new(0.0, -1.0, 0.0)))
         .insert(ColliderBundle::new(
             &Shape::cuboid(floor_size.x * 0.5, floor_size.y * 0.5, floor_size.z * 0.5),
             1.0,
@@ -49,29 +50,29 @@ fn setup(
     for y in 0..count_y {
         for x in 0..count_x {
             for z in 0..count_z {
-                let pos = Vec3::new(
-                    (x as f32 - count_x as f32 * 0.5) * 2.1 * radius,
-                    10.0 * radius * y as f32,
-                    (z as f32 - count_z as f32 * 0.5) * 2.1 * radius,
+                let pos = DVec3::new(
+                    (x as f64 - count_x as f64 * 0.5) * 2.1 * radius,
+                    10.0 * radius * y as f64,
+                    (z as f64 - count_z as f64 * 0.5) * 2.1 * radius,
                 );
                 commands
                     .spawn(PbrBundle {
                         mesh: cube.clone(),
                         material: blue.clone(),
                         transform: Transform {
-                            scale: Vec3::splat(radius * 2.0),
+                            scale: Vec3::splat(radius as f32 * 2.0),
                             ..default()
                         },
                         ..default()
                     })
-                    .insert(RigidBodyBundle::new_dynamic().with_pos(pos + Vec3::Y * 5.0))
+                    .insert(RigidBodyBundle::new_dynamic().with_pos(pos + DVec3::Y * 5.0))
                     .insert(ColliderBundle::new(
                         &Shape::cuboid(radius, radius, radius),
                         1.0,
                     ))
                     .insert(Player)
                     .insert(MoveAcceleration(0.1))
-                    .insert(MaxLinearVelocity(Vec3::new(30.0, 30.0, 30.0)));
+                    .insert(MaxLinearVelocity(DVec3::new(30.0, 30.0, 30.0)));
             }
         }
     }

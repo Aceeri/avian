@@ -1,6 +1,7 @@
 use crate::{components::*, Vector};
 
 use bevy::prelude::*;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 #[derive(Bundle, Default)]
 pub struct RigidBodyBundle {
@@ -66,7 +67,7 @@ impl RigidBodyBundle {
     }
 
     #[cfg(feature = "3d")]
-    pub fn with_rot(self, quat: Quat) -> Self {
+    pub fn with_rot(self, quat: DQuat) -> Self {
         Self {
             rot: Rot(quat),
             ..self
@@ -74,7 +75,7 @@ impl RigidBodyBundle {
     }
 
     /// Computes the mass properties that a [`Collider`] would have with a given density, and adds those to the body.
-    pub fn with_mass_props_from_shape(self, shape: &Shape, density: f32) -> Self {
+    pub fn with_mass_props_from_shape(self, shape: &Shape, density: f64) -> Self {
         let ColliderMassProperties {
             mass,
             inv_mass,
@@ -105,7 +106,7 @@ pub struct ColliderBundle {
 
 impl ColliderBundle {
     /// Creates a new [`ColliderBundle`] from a given [`ColliderShape`] and density.
-    pub fn new(shape: &Shape, density: f32) -> Self {
+    pub fn new(shape: &Shape, density: f64) -> Self {
         let aabb = ColliderAabb::from_shape(shape);
         let mass_props = ColliderMassProperties::from_shape_and_density(shape, density);
 

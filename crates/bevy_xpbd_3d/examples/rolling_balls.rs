@@ -6,10 +6,10 @@ use examples_common_3d::XpbdExamplePlugin;
 struct Player;
 
 #[derive(Component, Deref, DerefMut)]
-pub struct RollAcceleration(pub Vec3);
+pub struct RollAcceleration(pub DVec3);
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MaxAngularVelocity(pub Vec3);
+pub struct MaxAngularVelocity(pub DVec3);
 
 fn setup(
     mut commands: Commands,
@@ -32,7 +32,7 @@ fn setup(
         ..default()
     });
 
-    let floor_size = Vec3::new(80.0, 1.0, 80.0);
+    let floor_size = DVec3::new(80.0, 1.0, 80.0);
     let _floor = commands
         .spawn(PbrBundle {
             mesh: cube,
@@ -40,7 +40,7 @@ fn setup(
             transform: Transform::from_scale(floor_size),
             ..default()
         })
-        .insert(RigidBodyBundle::new_static().with_pos(Vec3::new(0.0, -5.0, 0.0)))
+        .insert(RigidBodyBundle::new_static().with_pos(DVec3::new(0.0, -5.0, 0.0)))
         .insert(ColliderBundle::new(
             &Shape::cuboid(floor_size.x * 0.5, floor_size.y * 0.5, floor_size.z * 0.5),
             1.0,
@@ -53,17 +53,17 @@ fn setup(
     for y in 0..count_y {
         for x in 0..count_x {
             for z in 0..count_z {
-                let pos = Vec3::new(
-                    (x as f32 - count_x as f32 * 0.5) * 2.5 * radius,
-                    2.5 * radius * y as f32,
-                    (z as f32 - count_z as f32 * 0.5) * 2.5 * radius,
+                let pos = DVec3::new(
+                    (x as f64 - count_x as f64 * 0.5) * 2.5 * radius,
+                    2.5 * radius * y as f64,
+                    (z as f64 - count_z as f64 * 0.5) * 2.5 * radius,
                 );
                 commands
                     .spawn(PbrBundle {
                         mesh: ball.clone(),
                         material: blue.clone(),
                         transform: Transform {
-                            scale: Vec3::splat(radius * 2.0),
+                            scale: DVec3::splat(radius * 2.0),
                             translation: pos,
                             ..default()
                         },
@@ -72,8 +72,8 @@ fn setup(
                     .insert(RigidBodyBundle::new_dynamic().with_pos(pos))
                     .insert(ColliderBundle::new(&Shape::ball(radius), 1.0))
                     .insert(Player)
-                    .insert(RollAcceleration(Vec3::splat(0.5)))
-                    .insert(MaxAngularVelocity(Vec3::new(30.0, 30.0, 30.0)));
+                    .insert(RollAcceleration(DVec3::splat(0.5)))
+                    .insert(MaxAngularVelocity(DVec3::new(30.0, 30.0, 30.0)));
             }
         }
     }
@@ -97,11 +97,11 @@ fn setup(
             ..default()
         },
         transform: Transform {
-            translation: Vec3::new(0.0, 10.0, 0.0),
-            rotation: Quat::from_euler(
+            translation: DVec3::new(0.0, 10.0, 0.0),
+            rotation: DQuat::from_euler(
                 EulerRot::XYZ,
-                std::f32::consts::PI * 1.3,
-                std::f32::consts::PI * 1.85,
+                std::f64::consts::PI * 1.3,
+                std::f64::consts::PI * 1.85,
                 0.0,
             ),
             ..default()
@@ -110,8 +110,8 @@ fn setup(
     });
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 15.0, -50.0))
-            .looking_at(Vec3::Y * 10.0, Vec3::Y),
+        transform: Transform::from_translation(DVec3::new(0.0, 15.0, -50.0))
+            .looking_at(DVec3::Y * 10.0, DVec3::Y),
         ..default()
     });
 }
@@ -145,7 +145,7 @@ fn main() {
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(NumSubsteps(6))
-        .insert_resource(Gravity(Vec3::Y * -9.81))
+        .insert_resource(Gravity(DVec3::Y * -9.81))
         .add_plugins(DefaultPlugins)
         .add_plugin(XpbdExamplePlugin)
         .add_startup_system(setup)

@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use bevy::prelude::*;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 pub struct IntegratorPlugin;
 
@@ -107,13 +108,13 @@ fn integrate_rot(
             ang_vel.0 += delta_ang_vel;
         }
 
-        let q = Quat::from_vec4(ang_vel.extend(0.0)) * rot.0;
+        let q = DQuat::from_vec4(ang_vel.extend(0.0)) * rot.0;
         let (x, y, z, w) = (
             rot.x + sub_dt.0 * 0.5 * q.x,
             rot.y + sub_dt.0 * 0.5 * q.y,
             rot.z + sub_dt.0 * 0.5 * q.z,
             rot.w + sub_dt.0 * 0.5 * q.w,
         );
-        rot.0 = Quat::from_xyzw(x, y, z, w).normalize();
+        rot.0 = DQuat::from_xyzw(x, y, z, w).normalize();
     }
 }

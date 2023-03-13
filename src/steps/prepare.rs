@@ -1,5 +1,6 @@
 use crate::{prelude::*, utils::make_isometry};
 use bevy::prelude::*;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 pub struct PreparePlugin;
 
@@ -23,8 +24,8 @@ impl Plugin for PreparePlugin {
 #[cfg(feature = "2d")]
 fn sync_transforms(mut bodies: Query<(&mut Transform, &Pos, &Rot)>) {
     for (mut transform, pos, rot) in &mut bodies {
-        transform.translation = pos.extend(0.0);
-        transform.rotation = (*rot).into();
+        transform.translation = pos.0.as_vec2().extend(0.0);
+        //transform.rotation = rot.0.as_f32();
     }
 }
 
@@ -32,8 +33,8 @@ fn sync_transforms(mut bodies: Query<(&mut Transform, &Pos, &Rot)>) {
 #[cfg(feature = "3d")]
 fn sync_transforms(mut bodies: Query<(&mut Transform, &Pos, &Rot)>) {
     for (mut transform, pos, rot) in &mut bodies {
-        transform.translation = pos.0;
-        transform.rotation = rot.0;
+        transform.translation = pos.0.as_vec3();
+        transform.rotation = rot.0.as_f32();
     }
 }
 
@@ -68,7 +69,7 @@ fn update_aabb(
 }
 
 fn update_sub_delta_time(substeps: Res<NumSubsteps>, mut sub_dt: ResMut<SubDeltaTime>) {
-    sub_dt.0 = DELTA_TIME / substeps.0 as f32;
+    sub_dt.0 = DELTA_TIME / substeps.0 as f64;
 }
 
 type MassPropsChanged = Or<(
@@ -87,7 +88,7 @@ fn update_mass_props(
     mut bodies: Query<(MassPropsQueryMut, Option<ColliderQuery>), MassPropsChanged>,
 ) {
     for (mut mass_props, collider) in &mut bodies {
-        if mass_props.mass.is_changed() && mass_props.mass.0 >= f32::EPSILON {
+        if mass_props.mass.is_changed() && mass_props.mass.0 >= f64::EPSILON {
             mass_props.inv_mass.0 = 1.0 / mass_props.mass.0;
         }
 
@@ -106,11 +107,11 @@ fn update_mass_props(
             mass_props += *collider.mass_props;
         }
 
-        if mass_props.mass.0 < f32::EPSILON {
-            mass_props.mass.0 = f32::EPSILON;
+        if mass_props.mass.0 < f64::EPSILON {
+            mass_props.mass.0 = f64::EPSILON;
         }
-        if mass_props.inv_mass.0 < f32::EPSILON {
-            mass_props.inv_mass.0 = f32::EPSILON;
+        if mass_props.inv_mass.0 < f64::EPSILON {
+            mass_props.inv_mass.0 = f64::EPSILON;
         }
     }
 }

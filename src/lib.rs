@@ -1,8 +1,8 @@
 #[cfg(feature = "2d")]
-pub extern crate parry2d as parry;
+pub extern crate parry2d_f64 as parry;
 
 #[cfg(feature = "3d")]
-pub extern crate parry3d as parry;
+pub extern crate parry3d_f64 as parry;
 
 pub mod bundles;
 pub mod collision;
@@ -25,17 +25,18 @@ pub mod prelude {
 mod utils;
 
 use bevy::{ecs::schedule::ShouldRun, prelude::*};
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 use bevy_prototype_debug_lines::*;
 use parry::math::Isometry;
 use prelude::*;
 
 #[cfg(feature = "2d")]
-pub type Vector = Vec2;
+pub type Vector = DVec2;
 
 #[cfg(feature = "3d")]
-pub type Vector = Vec3;
+pub type Vector = DVec3;
 
-pub const DELTA_TIME: f32 = 1.0 / 60.0;
+pub const DELTA_TIME: f64 = 1.0 / 60.0;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 struct FixedUpdateStage;
@@ -93,10 +94,10 @@ impl Plugin for XpbdPlugin {
 fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>) {
     #[cfg(feature = "2d")]
     for aabb in aabbs.iter() {
-        let v1 = Vec3::new(aabb.mins.x, aabb.mins.y, 0.0);
-        let v2 = Vec3::new(aabb.maxs.x, aabb.mins.y, 0.0);
-        let v3 = Vec3::new(aabb.maxs.x, aabb.maxs.y, 0.0);
-        let v4 = Vec3::new(aabb.mins.x, aabb.maxs.y, 0.0);
+        let v1 = DVec3::new(aabb.mins.x, aabb.mins.y, 0.0);
+        let v2 = DVec3::new(aabb.maxs.x, aabb.mins.y, 0.0);
+        let v3 = DVec3::new(aabb.maxs.x, aabb.maxs.y, 0.0);
+        let v4 = DVec3::new(aabb.mins.x, aabb.maxs.y, 0.0);
 
         lines.line(v1, v2, 0.0);
         lines.line(v2, v3, 0.0);
@@ -106,14 +107,14 @@ fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>) {
 
     #[cfg(feature = "3d")]
     for aabb in aabbs.iter() {
-        let v1 = Vec3::new(aabb.mins.x, aabb.mins.y, aabb.mins.z);
-        let v2 = Vec3::new(aabb.maxs.x, aabb.mins.y, aabb.mins.z);
-        let v3 = Vec3::new(aabb.maxs.x, aabb.maxs.y, aabb.mins.z);
-        let v4 = Vec3::new(aabb.mins.x, aabb.maxs.y, aabb.mins.z);
-        let v5 = Vec3::new(aabb.mins.x, aabb.mins.y, aabb.maxs.z);
-        let v6 = Vec3::new(aabb.maxs.x, aabb.mins.y, aabb.maxs.z);
-        let v7 = Vec3::new(aabb.maxs.x, aabb.maxs.y, aabb.maxs.z);
-        let v8 = Vec3::new(aabb.mins.x, aabb.maxs.y, aabb.maxs.z);
+        let v1 = DVec3::new(aabb.mins.x, aabb.mins.y, aabb.mins.z);
+        let v2 = DVec3::new(aabb.maxs.x, aabb.mins.y, aabb.mins.z);
+        let v3 = DVec3::new(aabb.maxs.x, aabb.maxs.y, aabb.mins.z);
+        let v4 = DVec3::new(aabb.mins.x, aabb.maxs.y, aabb.mins.z);
+        let v5 = DVec3::new(aabb.mins.x, aabb.mins.y, aabb.maxs.z);
+        let v6 = DVec3::new(aabb.maxs.x, aabb.mins.y, aabb.maxs.z);
+        let v7 = DVec3::new(aabb.maxs.x, aabb.maxs.y, aabb.maxs.z);
+        let v8 = DVec3::new(aabb.mins.x, aabb.maxs.y, aabb.maxs.z);
 
         lines.line(v1, v2, 0.0);
         lines.line(v2, v3, 0.0);
@@ -133,7 +134,7 @@ fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>) {
 #[derive(Resource, Debug, Default)]
 pub struct XpbdLoop {
     pub(crate) has_added_time: bool,
-    pub(crate) accumulator: f32,
+    pub(crate) accumulator: f64,
     pub(crate) substepping: bool,
     pub(crate) current_substep: u32,
     pub(crate) queued_steps: u32,
@@ -173,9 +174,9 @@ fn run_criteria(
         state.has_added_time = true;
 
         if state.paused {
-            state.accumulator += DELTA_TIME * state.queued_steps as f32;
+            state.accumulator += DELTA_TIME * state.queued_steps as f64;
         } else {
-            state.accumulator += time.delta_seconds();
+            state.accumulator += time.delta_seconds_f64();
         }
     }
 

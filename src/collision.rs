@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 /// Data related to a collision between two bodies.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -16,7 +17,7 @@ pub struct Collision {
     /// Contact normal from contact point a to b
     pub normal: Vector,
     /// Penetration depth
-    pub penetration: f32,
+    pub penetration: f64,
 }
 
 /// Computes one pair of collision points between two shapes.

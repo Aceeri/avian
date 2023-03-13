@@ -6,10 +6,10 @@ use examples_common_2d::XpbdExamplePlugin;
 struct Player;
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MoveAcceleration(pub f32);
+pub struct MoveAcceleration(pub f64);
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MaxVelocity(pub Vec2);
+pub struct MaxVelocity(pub DVec2);
 
 pub enum MovementEvent {
     Up,
@@ -42,45 +42,45 @@ fn setup(
 
     let _floor = commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::ONE))),
+            mesh: meshes.add(Mesh::from(shape::Quad::new(DVec2::ONE))),
             material: white.clone(),
-            transform: Transform::from_scale(Vec3::new(20.0, 1.0, 1.0)),
+            transform: Transform::from_scale(DVec3::new(20.0, 1.0, 1.0)),
             ..default()
         },
-        RigidBodyBundle::new_static().with_pos(Vec2::new(0.0, -7.5)),
+        RigidBodyBundle::new_static().with_pos(DVec2::new(0.0, -7.5)),
         ColliderBundle::new(&Shape::cuboid(10.0, 0.5), 1.0),
     ));
 
     let _ceiling = commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::ONE))),
+            mesh: meshes.add(Mesh::from(shape::Quad::new(DVec2::ONE))),
             material: white.clone(),
-            transform: Transform::from_scale(Vec3::new(20.0, 1.0, 1.0)),
+            transform: Transform::from_scale(DVec3::new(20.0, 1.0, 1.0)),
             ..default()
         },
-        RigidBodyBundle::new_static().with_pos(Vec2::new(0.0, 7.5)),
+        RigidBodyBundle::new_static().with_pos(DVec2::new(0.0, 7.5)),
         ColliderBundle::new(&Shape::cuboid(10.0, 0.5), 1.0),
     ));
 
     let _left_wall = commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::ONE))),
+            mesh: meshes.add(Mesh::from(shape::Quad::new(DVec2::ONE))),
             material: white.clone(),
-            transform: Transform::from_scale(Vec3::new(1.0, 15.0, 1.0)),
+            transform: Transform::from_scale(DVec3::new(1.0, 15.0, 1.0)),
             ..default()
         },
-        RigidBodyBundle::new_static().with_pos(Vec2::new(-9.5, 0.0)),
+        RigidBodyBundle::new_static().with_pos(DVec2::new(-9.5, 0.0)),
         ColliderBundle::new(&Shape::cuboid(0.5, 10.0), 1.0),
     ));
 
     let _right_wall = commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::ONE))),
+            mesh: meshes.add(Mesh::from(shape::Quad::new(DVec2::ONE))),
             material: white,
-            transform: Transform::from_scale(Vec3::new(1.0, 15.0, 1.0)),
+            transform: Transform::from_scale(DVec3::new(1.0, 15.0, 1.0)),
             ..default()
         },
-        RigidBodyBundle::new_static().with_pos(Vec2::new(9.5, 0.0)),
+        RigidBodyBundle::new_static().with_pos(DVec2::new(9.5, 0.0)),
         ColliderBundle::new(&Shape::cuboid(0.5, 10.0), 1.0),
     ));
 
@@ -88,16 +88,16 @@ fn setup(
     let stacks = 25;
     for i in 0..25 {
         for j in 0..stacks {
-            let pos = Vec2::new(
-                (j as f32 - stacks as f32 * 0.5) * 2.5 * radius,
-                2.0 * radius * i as f32 - 2.0,
+            let pos = DVec2::new(
+                (j as f64 - stacks as f64 * 0.5) * 2.5 * radius,
+                2.0 * radius * i as f64 - 2.0,
             );
             commands.spawn((
                 PbrBundle {
                     mesh: sphere.clone(),
                     material: blue.clone(),
                     transform: Transform {
-                        scale: Vec3::splat(radius),
+                        scale: DVec3::splat(radius),
                         translation: pos.extend(0.0),
                         ..default()
                     },
@@ -110,13 +110,13 @@ fn setup(
                 ColliderBundle::new(&Shape::ball(radius), 1.0),
                 Player,
                 MoveAcceleration(0.5),
-                MaxVelocity(Vec2::new(30.0, 30.0)),
+                MaxVelocity(DVec2::new(30.0, 30.0)),
             ));
         }
     }
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 100.0)),
+        transform: Transform::from_translation(DVec3::new(0.0, 0.0, 100.0)),
         projection: OrthographicProjection {
             scale: 0.025,
             ..default()
@@ -165,7 +165,7 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(Gravity(Vec2::new(0.0, -9.81)))
+        .insert_resource(Gravity(DVec2::new(0.0, -9.81)))
         .insert_resource(NumSubsteps(6))
         .add_plugins(DefaultPlugins)
         .add_plugin(XpbdExamplePlugin)

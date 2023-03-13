@@ -1,20 +1,21 @@
 use crate::prelude::*;
 #[cfg(feature = "3d")]
 use bevy::prelude::*;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 #[cfg(feature = "2d")]
-pub(crate) fn make_isometry(pos: Vector, rot: &Rot) -> Isometry<f32> {
-    Isometry::<f32>::new(pos.into(), (*rot).into())
+pub(crate) fn make_isometry(pos: Vector, rot: &Rot) -> Isometry<f64> {
+    Isometry::<f64>::new(pos.into(), (*rot).into())
 }
 
 #[cfg(feature = "3d")]
-pub(crate) fn make_isometry(pos: Vector, rot: &Rot) -> Isometry<f32> {
-    Isometry::<f32>::new(pos.into(), rot.to_scaled_axis().into())
+pub(crate) fn make_isometry(pos: Vector, rot: &Rot) -> Isometry<f64> {
+    Isometry::<f64>::new(pos.into(), rot.to_scaled_axis().into())
 }
 
 #[cfg(feature = "3d")]
-pub(crate) fn get_rotated_inertia_tensor(inertia_tensor: Mat3, rot: Quat) -> Mat3 {
-    let rot_mat3 = Mat3::from_quat(rot);
+pub(crate) fn get_rotated_inertia_tensor(inertia_tensor: DMat3, rot: DQuat) -> DMat3 {
+    let rot_mat3 = DMat3::from_quat(rot);
     (rot_mat3 * inertia_tensor) * rot_mat3.transpose()
 }
 
@@ -23,14 +24,14 @@ pub(crate) fn get_dynamic_friction(
     tangent_vel: Vector,
     friction1: &Friction,
     friction2: &Friction,
-    normal_lagrange: f32,
-    sub_dt: f32,
+    normal_lagrange: f64,
+    sub_dt: f64,
 ) -> Vector {
     let tangent_vel_magnitude = tangent_vel.length();
 
     // Avoid division by zero when normalizing the vector later.
     // We compare against epsilon to avoid potential floating point precision problems.
-    if tangent_vel_magnitude.abs() <= f32::EPSILON {
+    if tangent_vel_magnitude.abs() <= f64::EPSILON {
         return Vector::ZERO;
     }
 
@@ -48,12 +49,12 @@ pub(crate) fn get_dynamic_friction(
 /// Calculates velocity correction caused by restitution.
 pub(crate) fn get_restitution(
     normal: Vector,
-    normal_vel: f32,
-    pre_solve_normal_vel: f32,
+    normal_vel: f64,
+    pre_solve_normal_vel: f64,
     restitution1: &Restitution,
     restitution2: &Restitution,
     gravity: Vector,
-    sub_dt: f32,
+    sub_dt: f64,
 ) -> Vector {
     let mut restitution_coefficient = (restitution1.0 + restitution2.0) * 0.5;
 

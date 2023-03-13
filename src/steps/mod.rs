@@ -9,6 +9,7 @@ pub use prepare::PreparePlugin;
 pub use solver::SolverPlugin;
 
 use bevy::prelude::SystemLabel;
+use bevy::math::{DVec2, DVec3, DMat3, DQuat};
 
 /// The main steps in the physics simulation loop.
 #[derive(SystemLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]

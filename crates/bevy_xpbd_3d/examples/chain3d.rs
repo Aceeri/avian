@@ -6,7 +6,7 @@ use examples_common_3d::XpbdExamplePlugin;
 struct Player;
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MoveSpeed(pub f32);
+pub struct MoveSpeed(pub f64);
 
 fn setup(
     mut commands: Commands,
@@ -30,7 +30,7 @@ fn setup(
         subdivisions: 4,
     }));
 
-    let floor_size = Vec3::new(30.0, 1.0, 30.0);
+    let floor_size = DVec3::new(30.0, 1.0, 30.0);
     let _floor = commands
         .spawn(PbrBundle {
             mesh: cube,
@@ -38,7 +38,7 @@ fn setup(
             transform: Transform::from_scale(floor_size),
             ..default()
         })
-        .insert(RigidBodyBundle::new_static().with_pos(Vec3::new(0.0, -18.0, 0.0)))
+        .insert(RigidBodyBundle::new_static().with_pos(DVec3::new(0.0, -18.0, 0.0)))
         .insert(ColliderBundle::new(
             &Shape::cuboid(floor_size.x * 0.5, floor_size.y * 0.5, floor_size.z * 0.5),
             1.0,
@@ -49,8 +49,8 @@ fn setup(
         &mut commands,
         sphere,
         blue,
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::Y,
+        DVec3::new(0.0, 0.0, 0.0),
+        DVec3::Y,
         100,
         0.001,
         0.075,
@@ -62,8 +62,8 @@ fn setup(
         &mut commands,
         cube,
         blue,
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::Y,
+        DVec3::new(0.0, 0.0, 0.0),
+        DVec3::Y,
         2,
         3.0,
         1.0,
@@ -89,11 +89,11 @@ fn setup(
             ..default()
         },
         transform: Transform {
-            translation: Vec3::new(0.0, 10.0, 0.0),
-            rotation: Quat::from_euler(
+            translation: DVec3::new(0.0, 10.0, 0.0),
+            rotation: DQuat::from_euler(
                 EulerRot::XYZ,
-                std::f32::consts::PI * 1.3,
-                std::f32::consts::PI * 2.05,
+                std::f64::consts::PI * 1.3,
+                std::f64::consts::PI * 2.05,
                 0.0,
             ),
             ..default()
@@ -102,8 +102,8 @@ fn setup(
     });
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, -20.0))
-            .looking_at(Vec3::Y * -10.0, Vec3::Y),
+        transform: Transform::from_translation(DVec3::new(0.0, 0.0, -20.0))
+            .looking_at(DVec3::Y * -10.0, DVec3::Y),
         ..default()
     });
 }
@@ -113,20 +113,20 @@ fn create_chain(
     commands: &mut Commands,
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
-    start_pos: Vec3,
-    dir: Vec3,
+    start_pos: DVec3,
+    dir: DVec3,
     node_count: usize,
-    node_dist: f32,
-    node_size: f32,
-    compliance: f32,
+    node_dist: f64,
+    node_size: f64,
+    compliance: f64,
 ) {
     let mut prev = commands
         .spawn(PbrBundle {
             mesh: mesh.clone(),
             material: material.clone(),
             transform: Transform {
-                scale: Vec3::splat(node_size),
-                translation: Vec3::ZERO,
+                scale: DVec3::splat(node_size),
+                translation: DVec3::ZERO,
                 ..default()
             },
             ..default()
@@ -143,15 +143,15 @@ fn create_chain(
                 mesh: mesh.clone(),
                 material: material.clone(),
                 transform: Transform {
-                    scale: Vec3::splat(node_size),
-                    translation: Vec3::ZERO,
+                    scale: DVec3::splat(node_size),
+                    translation: DVec3::ZERO,
                     ..default()
                 },
                 ..default()
             })
             .insert(
                 RigidBodyBundle::new_dynamic()
-                    .with_pos(start_pos + delta_pos * i as f32)
+                    .with_pos(start_pos + delta_pos * i as f64)
                     .with_mass_props_from_shape(&Shape::ball(node_size * 0.5), 1.0),
             )
             .id();
@@ -200,7 +200,7 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.1)))
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(Gravity(Vec3::Y * -9.81))
+        .insert_resource(Gravity(DVec3::Y * -9.81))
         .insert_resource(NumSubsteps(50))
         .add_plugins(DefaultPlugins)
         .add_plugin(XpbdExamplePlugin)

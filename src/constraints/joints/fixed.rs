@@ -7,17 +7,17 @@ pub struct FixedJoint {
     pub entity2: Entity,
     pub local_anchor1: Vector,
     pub local_anchor2: Vector,
-    pub damping_lin: f32,
-    pub damping_ang: f32,
-    pub pos_lagrange: f32,
-    pub align_lagrange: f32,
-    pub compliance: f32,
+    pub damping_lin: f64,
+    pub damping_ang: f64,
+    pub pos_lagrange: f64,
+    pub align_lagrange: f64,
+    pub compliance: f64,
     pub force: Vector,
     pub align_torque: Torque,
 }
 
 impl Joint for FixedJoint {
-    fn new_with_compliance(entity1: Entity, entity2: Entity, compliance: f32) -> Self {
+    fn new_with_compliance(entity1: Entity, entity2: Entity, compliance: f64) -> Self {
         Self {
             entity1,
             entity2,
@@ -32,7 +32,7 @@ impl Joint for FixedJoint {
             #[cfg(feature = "2d")]
             align_torque: 0.0,
             #[cfg(feature = "3d")]
-            align_torque: Vec3::ZERO,
+            align_torque: DVec3::ZERO,
         }
     }
 
@@ -50,14 +50,14 @@ impl Joint for FixedJoint {
         }
     }
 
-    fn with_lin_vel_damping(self, damping: f32) -> Self {
+    fn with_lin_vel_damping(self, damping: f64) -> Self {
         Self {
             damping_lin: damping,
             ..self
         }
     }
 
-    fn with_ang_vel_damping(self, damping: f32) -> Self {
+    fn with_ang_vel_damping(self, damping: f64) -> Self {
         Self {
             damping_ang: damping,
             ..self
@@ -68,11 +68,11 @@ impl Joint for FixedJoint {
         [self.entity1, self.entity2]
     }
 
-    fn damping_lin(&self) -> f32 {
+    fn damping_lin(&self) -> f64 {
         self.damping_lin
     }
 
-    fn damping_ang(&self) -> f32 {
+    fn damping_ang(&self) -> f64 {
         self.damping_ang
     }
 
@@ -81,12 +81,12 @@ impl Joint for FixedJoint {
         &mut self,
         body1: &mut RigidBodyQueryItem,
         body2: &mut RigidBodyQueryItem,
-        sub_dt: f32,
+        sub_dt: f64,
     ) {
         let delta_q = self.get_delta_q(&body1.rot, &body2.rot);
         let angle = delta_q.length();
 
-        if angle > f32::EPSILON {
+        if angle > f64::EPSILON {
             let axis = delta_q / angle;
 
             let inv_inertia1 = body1.inv_inertia.rotated(&body1.rot);
@@ -124,7 +124,7 @@ impl Joint for FixedJoint {
         let delta_x = self.limit_distance(0.0, 0.0, world_r1, world_r2, &body1.pos, &body2.pos);
         let magnitude = delta_x.length();
 
-        if magnitude > f32::EPSILON {
+        if magnitude > f64::EPSILON {
             let dir = delta_x / magnitude;
 
             let inv_inertia1 = body1.inv_inertia.rotated(&body1.rot);
@@ -164,21 +164,21 @@ impl Joint for FixedJoint {
 
 impl FixedJoint {
     #[cfg(feature = "2d")]
-    fn get_delta_q(&self, rot1: &Rot, rot2: &Rot) -> Vec3 {
-        rot1.mul(rot2.inv()).as_radians() * Vec3::Z
+    fn get_delta_q(&self, rot1: &Rot, rot2: &Rot) -> DVec3 {
+        rot1.mul(rot2.inv()).as_radians() * DVec3::Z
     }
 
     #[cfg(feature = "3d")]
-    fn get_delta_q(&self, rot1: &Rot, rot2: &Rot) -> Vec3 {
+    fn get_delta_q(&self, rot1: &Rot, rot2: &Rot) -> DVec3 {
         2.0 * (rot1.0 * rot2.inverse()).xyz()
     }
 
-    fn update_force(&mut self, dir: Vector, sub_dt: f32) {
+    fn update_force(&mut self, dir: Vector, sub_dt: f64) {
         // Eq (10)
         self.force = self.pos_lagrange * dir / sub_dt.powi(2);
     }
 
-    fn update_align_torque(&mut self, axis: Vec3, sub_dt: f32) {
+    fn update_align_torque(&mut self, axis: DVec3, sub_dt: f64) {
         // Eq (17)
         #[cfg(feature = "2d")]
         {

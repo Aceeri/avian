@@ -3,7 +3,7 @@ use bevy_xpbd_2d::prelude::*;
 use examples_common_2d::XpbdExamplePlugin;
 
 #[derive(Resource, Default)]
-struct MouseWorldPos(Vec2);
+struct MouseWorldPos(DVec2);
 
 #[derive(Component)]
 struct FollowMouse;
@@ -35,7 +35,7 @@ fn setup(
 
     commands
         .spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 100.0)),
+            transform: Transform::from_translation(DVec3::new(0.0, 0.0, 100.0)),
             projection: OrthographicProjection {
                 scale: 0.025,
                 ..default()
@@ -51,17 +51,17 @@ fn create_chain(
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
     node_count: usize,
-    node_dist: f32,
-    node_size: f32,
-    compliance: f32,
+    node_dist: f64,
+    node_size: f64,
+    compliance: f64,
 ) {
     let mut prev = commands
         .spawn(PbrBundle {
             mesh: mesh.clone(),
             material: material.clone(),
             transform: Transform {
-                scale: Vec3::splat(node_size),
-                translation: Vec3::ZERO,
+                scale: DVec3::splat(node_size),
+                translation: DVec3::ZERO,
                 ..default()
             },
             ..default()
@@ -76,22 +76,22 @@ fn create_chain(
                 mesh: mesh.clone(),
                 material: material.clone(),
                 transform: Transform {
-                    scale: Vec3::splat(node_size),
-                    translation: Vec3::ZERO,
+                    scale: DVec3::splat(node_size),
+                    translation: DVec3::ZERO,
                     ..default()
                 },
                 ..default()
             })
             .insert(
                 RigidBodyBundle::new_dynamic()
-                    .with_pos(Vec2::Y * -(node_size + node_dist) * i as f32)
+                    .with_pos(DVec2::Y * -(node_size + node_dist) * i as f64)
                     .with_mass_props_from_shape(&Shape::ball(node_size * 0.5), 1.0),
             )
             .id();
 
         commands.spawn(
             SphericalJoint::new_with_compliance(prev, curr, compliance)
-                .with_local_anchor_2(Vec2::Y * (node_size + node_dist)),
+                .with_local_anchor_2(DVec2::Y * (node_size + node_dist)),
         );
 
         prev = curr;
@@ -106,10 +106,10 @@ fn mouse_position(
     let window = windows.get_primary().unwrap();
     let (camera, camera_transform) = q_camera.single();
     if let Some(pos) = window.cursor_position() {
-        let window_size = Vec2::new(window.width() as f32, window.height() as f32);
+        let window_size = DVec2::new(window.width() as f64, window.height() as f64);
 
         // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-        let ndc = (pos / window_size) * 2.0 - Vec2::ONE;
+        let ndc = (pos / window_size) * 2.0 - DVec2::ONE;
 
         // matrix for undoing the projection and camera transform
         let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
@@ -140,7 +140,7 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(Gravity(Vec2::new(0.0, -9.81)))
+        .insert_resource(Gravity(DVec2::new(0.0, -9.81)))
         .insert_resource(NumSubsteps(15))
         .insert_resource(NumPosIters(6))
         .init_resource::<MouseWorldPos>()

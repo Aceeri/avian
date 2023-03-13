@@ -6,7 +6,7 @@ use examples_common_2d::XpbdExamplePlugin;
 struct Player;
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MoveSpeed(pub f32);
+pub struct MoveSpeed(pub f64);
 
 fn setup(
     mut commands: Commands,
@@ -26,13 +26,13 @@ fn setup(
             mesh: cube.clone(),
             material: blue.clone(),
             transform: Transform {
-                scale: Vec3::splat(1.0),
-                translation: Vec3::ZERO,
+                scale: DVec3::splat(1.0),
+                translation: DVec3::ZERO,
                 ..default()
             },
             ..default()
         })
-        .insert(RigidBodyBundle::new_kinematic().with_pos(Vec2::new(0.0, 0.0)))
+        .insert(RigidBodyBundle::new_kinematic().with_pos(DVec2::new(0.0, 0.0)))
         .insert(Player)
         .insert(MoveSpeed(0.3))
         .id();
@@ -42,28 +42,28 @@ fn setup(
             mesh: cube,
             material: blue,
             transform: Transform {
-                scale: Vec3::splat(1.0),
-                translation: Vec3::ZERO,
+                scale: DVec3::splat(1.0),
+                translation: DVec3::ZERO,
                 ..default()
             },
             ..default()
         })
         .insert(
             RigidBodyBundle::new_dynamic()
-                .with_pos(Vec2::X * 1.5)
+                .with_pos(DVec2::X * 1.5)
                 .with_mass_props_from_shape(&Shape::cuboid(0.5, 0.5), 1.0),
         )
         .id();
 
     commands.spawn(
         PrismaticJoint::new_with_compliance(anchor, object, 0.0)
-            .with_local_anchor_1(Vec2::X * 0.5)
-            .with_free_axis(Vec2::X)
+            .with_local_anchor_1(DVec2::X * 0.5)
+            .with_free_axis(DVec2::X)
             .with_limits(1.0, 3.0),
     );
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 100.0)),
+        transform: Transform::from_translation(DVec3::new(0.0, 0.0, 100.0)),
         projection: OrthographicProjection {
             scale: 0.025,
             ..default()
@@ -101,7 +101,7 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.1)))
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(Gravity(Vec2::Y * -9.81))
+        .insert_resource(Gravity(DVec2::Y * -9.81))
         .insert_resource(NumSubsteps(50))
         .add_plugins(DefaultPlugins)
         .add_plugin(XpbdExamplePlugin)

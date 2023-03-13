@@ -6,7 +6,7 @@ use examples_common_3d::XpbdExamplePlugin;
 struct Player;
 
 #[derive(Component, Deref, DerefMut)]
-pub struct MoveSpeed(pub f32);
+pub struct MoveSpeed(pub f64);
 
 fn setup(
     mut commands: Commands,
@@ -25,13 +25,13 @@ fn setup(
             mesh: cube.clone(),
             material: blue.clone(),
             transform: Transform {
-                scale: Vec3::splat(1.0),
-                translation: Vec3::ZERO,
+                scale: DVec3::splat(1.0),
+                translation: DVec3::ZERO,
                 ..default()
             },
             ..default()
         })
-        .insert(RigidBodyBundle::new_kinematic().with_pos(Vec3::new(0.0, 0.0, 0.0)))
+        .insert(RigidBodyBundle::new_kinematic().with_pos(DVec3::new(0.0, 0.0, 0.0)))
         .insert(Player)
         .insert(MoveSpeed(0.3))
         .id();
@@ -41,23 +41,23 @@ fn setup(
             mesh: cube,
             material: blue,
             transform: Transform {
-                scale: Vec3::splat(1.0),
-                translation: Vec3::ZERO,
+                scale: DVec3::splat(1.0),
+                translation: DVec3::ZERO,
                 ..default()
             },
             ..default()
         })
         .insert(
             RigidBodyBundle::new_dynamic()
-                .with_pos(Vec3::X * 1.5)
+                .with_pos(DVec3::X * 1.5)
                 .with_mass_props_from_shape(&Shape::cuboid(0.5, 0.5, 0.5), 1.0),
         )
         .id();
 
     commands.spawn(
         PrismaticJoint::new_with_compliance(anchor, object, 0.0)
-            .with_local_anchor_1(Vec3::X)
-            .with_free_axis(Vec3::X)
+            .with_local_anchor_1(DVec3::X)
+            .with_free_axis(DVec3::X)
             .with_limits(0.5, 3.0),
     );
 
@@ -80,11 +80,11 @@ fn setup(
             ..default()
         },
         transform: Transform {
-            translation: Vec3::new(0.0, 10.0, 0.0),
-            rotation: Quat::from_euler(
+            translation: DVec3::new(0.0, 10.0, 0.0),
+            rotation: DQuat::from_euler(
                 EulerRot::XYZ,
-                std::f32::consts::PI * 2.3,
-                std::f32::consts::PI * 2.05,
+                std::f64::consts::PI * 2.3,
+                std::f64::consts::PI * 2.05,
                 0.0,
             ),
             ..default()
@@ -93,8 +93,8 @@ fn setup(
     });
 
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0))
-            .looking_at(Vec3::Y * 0.0, Vec3::Y),
+        transform: Transform::from_translation(DVec3::new(0.0, 0.0, 10.0))
+            .looking_at(DVec3::Y * 0.0, DVec3::Y),
         ..default()
     });
 }
@@ -133,7 +133,7 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.1)))
         .insert_resource(Msaa { samples: 4 })
-        .insert_resource(Gravity(Vec3::Y * -9.81))
+        .insert_resource(Gravity(DVec3::Y * -9.81))
         .insert_resource(NumSubsteps(50))
         .add_plugins(DefaultPlugins)
         .add_plugin(XpbdExamplePlugin)

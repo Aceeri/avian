@@ -743,7 +743,7 @@ dependencies = [
  "console_error_panic_hook",
  "examples_common_2d",
  "nalgebra",
- "parry2d",
+ "parry2d-f64",
  "web-sys",
 ]
 
@@ -756,7 +756,7 @@ dependencies = [
  "console_error_panic_hook",
  "examples_common_3d",
  "nalgebra",
- "parry3d",
+ "parry3d-f64",
  "web-sys",
 ]
 
@@ -2006,10 +2006,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "parry2d"
+name = "parry2d-f64"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49c6edd297a40754e762344dbeb454bdfb51472f03280473065b9b0898008ce3"
+checksum = "4a1bf555d44a3be6c6b6acdea1614af50b12987b4b9651c812d3219e8136c336"
 dependencies = [
  "approx",
  "arrayvec",
@@ -2027,10 +2027,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "parry3d"
+name = "parry3d-f64"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c73a9ea58699f422dcd322c134ab02dad2871ba02ee871c9ae1f277c302eb092"
+checksum = "5dd9aeaccbb2bdc6b1ee9b9c7976a54523af68cb88112050b5f4b02935d5a346"
 dependencies = [
  "approx",
  "arrayvec",
