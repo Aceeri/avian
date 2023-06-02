@@ -105,6 +105,10 @@ fn penetration_constraints(
     broad_collision_pairs: Res<BroadCollisionPairs>,
     mut penetration_constraints: ResMut<PenetrationConstraints>,
     sub_dt: Res<SubDeltaTime>,
+
+    #[cfg(feature = "debug-lines")]
+    mut lines: ResMut<DebugLines>,
+    debug_config: Res<XpbdDebugConfig>,
 ) {
     penetration_constraints.0.clear();
 
@@ -124,6 +128,20 @@ fn penetration_constraints(
                 &collider_shape1.0,
                 &collider_shape2.0,
             ) {
+                #[cfg(feature = "debug-lines")]
+                if debug_config.contact_points {
+                    let mut line_point = |point: Vec3, color: Color, size: f32| {
+                        let size = size / 2.0;
+                        lines.line_colored(point - Vec3::Y * size, point + Vec3::Y * size, 0.06, color);
+                        lines.line_colored(point - Vec3::X * size, point + Vec3::X * size, 0.06, color);
+                        lines.line_colored(point - Vec3::Z * size, point + Vec3::Z * size, 0.06, color);
+                    };
+                    line_point(collision.world_r1.as_f32(), Color::RED, 0.4);
+                    line_point(collision.world_r2.as_f32(), Color::BLUE, 0.4);
+                    line_point(collision.local_r1.as_f32(), Color::YELLOW, 0.3);
+                    line_point(collision.local_r2.as_f32(), Color::CYAN, 0.3);
+                }
+
                 let mut constraint = PenetrationConstraint::new(*ent1, *ent2, collision);
                 constraint.constrain(&mut body1, &mut body2, sub_dt.0);
                 penetration_constraints.0.push(constraint);
@@ -224,6 +242,7 @@ fn solve_vel(
     penetration_constraints: Res<PenetrationConstraints>,
     gravity: Res<Gravity>,
     sub_dt: Res<SubDeltaTime>,
+    names: Query<&Name>,
 ) {
     for constraint in penetration_constraints.0.iter() {
         let Collision {

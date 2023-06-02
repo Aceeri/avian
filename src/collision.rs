@@ -44,8 +44,10 @@ pub(crate) fn get_collision(
         shape2.0.as_ref(),
         0.0,
     ) {
-        let world_r1 = Vector::from(collision.point1) - pos1 + local_com1;
-        let world_r2 = Vector::from(collision.point2) - pos2 + local_com2;
+        let world_r1 = Vector::from(collision.point1) - pos1;
+        let world_r2 = Vector::from(collision.point2) - pos2;
+        //let world_r1 = pos1 - Vector::from(collision.point1);
+        //let world_r2 = pos2 - Vector::from(collision.point2);
 
         return Some(Collision {
             entity1: ent1,

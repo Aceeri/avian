@@ -48,9 +48,10 @@ fn setup(
         ));
 
     let radius: Scalar = 1.0;
-    let count_x = 4;
+    let test = 1;
+    let count_x = test;
     let count_y = 4;
-    let count_z = 4;
+    let count_z = test;
     for y in 0..count_y {
         for x in 0..count_x {
             for z in 0..count_z {
@@ -64,14 +65,14 @@ fn setup(
                         mesh: cube.clone(),
                         material: blue.clone(),
                         transform: Transform {
-                            scale: Vec3::splat(radius as f32 * 2.0),
+                            scale: Vec3::splat(radius as f32),
                             ..default()
                         },
                         ..default()
                     })
                     .insert(RigidBodyBundle::new_dynamic().with_pos(pos + Vector::Y * 5.0))
                     .insert(ColliderBundle::new(
-                        &Shape::cuboid(radius, radius, radius),
+                        &Shape::cuboid(radius / 2.0, radius / 2.0, radius / 2.0),
                         1.0,
                     ))
                     .insert(Player)

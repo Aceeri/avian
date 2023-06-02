@@ -62,6 +62,9 @@ use bevy::{
 use parry::math::Isometry;
 use prelude::*;
 
+#[cfg(feature = "debug-lines")]
+use bevy_prototype_debug_lines::{DebugLinesPlugin, DebugLines};
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 struct FixedUpdateSet;
 
@@ -97,6 +100,22 @@ pub struct XpbdSchedule;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, ScheduleLabel)]
 pub struct XpbdSubstepSchedule;
 
+#[derive(Debug, Copy, Clone, Reflect, FromReflect, Resource)]
+#[reflect(Resource)]
+pub struct XpbdDebugConfig {
+    pub aabbs: bool,
+    pub contact_points: bool,
+}
+
+impl Default for XpbdDebugConfig {
+    fn default() -> Self {
+        Self {
+            aabbs: false,
+            contact_points: true,
+        }
+    }
+}
+
 impl Plugin for XpbdPlugin {
     fn build(&self, app: &mut App) {
         // Init resources and register component types
@@ -107,6 +126,7 @@ impl Plugin for XpbdPlugin {
             .init_resource::<NumPosIters>()
             .init_resource::<XpbdLoop>()
             .init_resource::<Gravity>()
+            .init_resource::<XpbdDebugConfig>()
             .register_type::<RigidBody>()
             .register_type::<Pos>()
             .register_type::<Rot>()
@@ -124,6 +144,7 @@ impl Plugin for XpbdPlugin {
             .register_type::<InvMass>()
             .register_type::<Inertia>()
             .register_type::<InvInertia>()
+            .register_type::<XpbdDebugConfig>()
             .register_type::<LocalCom>();
 
         let mut xpbd_schedule = Schedule::default();
@@ -175,7 +196,7 @@ impl Plugin for XpbdPlugin {
             .add_plugin(SolverPlugin)
             .add_plugin(SyncPlugin);
 
-        #[cfg(feature = "debug-render-aabbs")]
+        #[cfg(feature = "debug-lines")]
         {
             app.add_plugin(DebugLinesPlugin::default());
             app.add_system(draw_aabbs);
@@ -183,14 +204,18 @@ impl Plugin for XpbdPlugin {
     }
 }
 
-#[cfg(feature = "debug-render-aabbs")]
-fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>) {
+#[cfg(feature = "debug-lines")]
+fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>, config: Res<XpbdDebugConfig>) {
+    if !config.aabbs {
+        return;
+    }
+
     #[cfg(feature = "2d")]
     for aabb in aabbs.iter() {
-        let v1 = Vec3::new(aabb.mins.x, aabb.mins.y, 0.0);
-        let v2 = Vec3::new(aabb.maxs.x, aabb.mins.y, 0.0);
-        let v3 = Vec3::new(aabb.maxs.x, aabb.maxs.y, 0.0);
-        let v4 = Vec3::new(aabb.mins.x, aabb.maxs.y, 0.0);
+        let v1 = Vector::new(aabb.mins.x, aabb.mins.y, 0.0).as_f32();
+        let v2 = Vector::new(aabb.maxs.x, aabb.mins.y, 0.0).as_f32();
+        let v3 = Vector::new(aabb.maxs.x, aabb.maxs.y, 0.0).as_f32();
+        let v4 = Vector::new(aabb.mins.x, aabb.maxs.y, 0.0).as_f32();
 
         lines.line(v1, v2, 0.0);
         lines.line(v2, v3, 0.0);
@@ -200,14 +225,14 @@ fn draw_aabbs(aabbs: Query<&ColliderAabb>, mut lines: ResMut<DebugLines>) {
 
     #[cfg(feature = "3d")]
     for aabb in aabbs.iter() {
-        let v1 = Vec3::new(aabb.mins.x, aabb.mins.y, aabb.mins.z);
-        let v2 = Vec3::new(aabb.maxs.x, aabb.mins.y, aabb.mins.z);
-        let v3 = Vec3::new(aabb.maxs.x, aabb.maxs.y, aabb.mins.z);
-        let v4 = Vec3::new(aabb.mins.x, aabb.maxs.y, aabb.mins.z);
-        let v5 = Vec3::new(aabb.mins.x, aabb.mins.y, aabb.maxs.z);
-        let v6 = Vec3::new(aabb.maxs.x, aabb.mins.y, aabb.maxs.z);
-        let v7 = Vec3::new(aabb.maxs.x, aabb.maxs.y, aabb.maxs.z);
-        let v8 = Vec3::new(aabb.mins.x, aabb.maxs.y, aabb.maxs.z);
+        let v1 = Vector::new(aabb.mins.x, aabb.mins.y, aabb.mins.z).as_f32();
+        let v2 = Vector::new(aabb.maxs.x, aabb.mins.y, aabb.mins.z).as_f32();
+        let v3 = Vector::new(aabb.maxs.x, aabb.maxs.y, aabb.mins.z).as_f32();
+        let v4 = Vector::new(aabb.mins.x, aabb.maxs.y, aabb.mins.z).as_f32();
+        let v5 = Vector::new(aabb.mins.x, aabb.mins.y, aabb.maxs.z).as_f32();
+        let v6 = Vector::new(aabb.maxs.x, aabb.mins.y, aabb.maxs.z).as_f32();
+        let v7 = Vector::new(aabb.maxs.x, aabb.maxs.y, aabb.maxs.z).as_f32();
+        let v8 = Vector::new(aabb.mins.x, aabb.maxs.y, aabb.maxs.z).as_f32();
 
         lines.line(v1, v2, 0.0);
         lines.line(v2, v3, 0.0);
